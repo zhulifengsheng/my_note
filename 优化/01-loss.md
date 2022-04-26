@@ -10,9 +10,8 @@ $$
 
 ## 2. cross entropy loss(交叉熵损失=log对数损失)
 
-​	CE是用于衡量两个分布之间的距离，在了解CE之前，
+CE loss一般用于二分类、多分类问题，设有$C$个类别，真实值为长度$C$的向量$y$，模型预测值为长度$C$的向量$f(x;\theta)$，$f_c(x;\theta)$表示输出向量的第C维
 
-​	CE loss一般用于二分类、多分类问题，设有$C$个类别，真实值为长度$C$的向量$y$，模型预测值为长度$C$的向量$f(x;\theta)$，$f_c(x;\theta)$表示输出向量的第C维
 $$
 \begin{aligned}
 L(y,f(x;\theta)) &= -ylogf(x;\theta) \\
