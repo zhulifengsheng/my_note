@@ -37,3 +37,5 @@ $$
 likelihood(\theta) = \log f(X|\theta) = \sum_{i=1}^N \log f(x_i|\theta)
 $$
 如果一个损失函数可以使似然函数最大，那么就等同于用极大似然估计的方法来求解模型参数$\theta$
+
+## 信息论
