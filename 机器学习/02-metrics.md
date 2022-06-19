@@ -31,9 +31,9 @@ $$
 
 对于一个二分类任务，我们根据所有样本的预测结果进行排序，按照这个顺序逐个将样本预测为正例。每次预测正例数目加一，每次都可以计算出TP TN FP TN四个值，以Precision为纵轴、Recall为横轴则是P-R曲线；以$TPR=\frac{TP}{TP+FN}$为纵轴，$FPR=\frac{FP}{TP+FN}$为横轴则是ROC曲线。AUC是ROC曲线 与坐标轴之间的面积
 
-![img](https://upload-images.jianshu.io/upload_images/18391151-c428d6ae7af5a784.png?imageMogr2/auto-orient/strip|imageView2/2/w/367/format/webp)
+![img](pr.png)
 
-![img](https://upload-images.jianshu.io/upload_images/18391151-3b0021b47e5d0028.png?imageMogr2/auto-orient/strip|imageView2/2/w/633/format/webp)
+![img](auc.png)
 
 ## 偏差与方差
 
@@ -51,7 +51,7 @@ bias(x) = \bar f(x) - y
 $$
 泛化误差 = 偏差^2 + 方差 + 误差（公式推导过程省略） 
 
-![img](https://pic1.zhimg.com/80/v2-7f56516f55463656e81d55edc5c069e8_1440w.jpg)
+![img](error.jpg)
 
 欠拟合阶段：模型拟合能力差，偏差大；模型训练不充分，训练数据不同而导致的差异没有被模型捕捉，方差小
 
