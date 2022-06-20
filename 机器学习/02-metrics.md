@@ -31,7 +31,7 @@ $$
 
 对于一个二分类任务，我们根据所有样本的预测结果进行排序，按照这个顺序逐个将样本预测为正例。每次预测正例数目加一，每次都可以计算出TP TN FP TN四个值，以Precision为纵轴、Recall为横轴则是P-R曲线；以$TPR=\frac{TP}{TP+FN}$为纵轴，$FPR=\frac{FP}{TP+FN}$为横轴则是ROC曲线。AUC是ROC曲线 与坐标轴之间的面积
 
-![img](pr.png)
+![img](PR.png)
 
 ![img](auc.png)
 
