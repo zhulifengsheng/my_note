@@ -21,7 +21,7 @@ discriminator可以认为是generator的对手，它专门用来和generator进�
 
 ![](gan2.webp)
 
-1. Generator-v1的参数是随机初始化的，所以生成的图片（fake-imagev1）都比较差，此时我们用real image + fake image- v1训练了一个Discriminator-v1
+1. Generator-v1的参数是随机初始化的，所以生成的图片（fake-imagev1）都比较差，此时我们用real image + fake image- v1训练了一个Discriminator-v1【它可以判断出来哪些是正样本，哪些是负样本】
 2. 有了Discriminator-v1，我们来训练一个Generator-v2，使得其生成的图片可以骗过Discriminator-v1。然后，我们再用real image + fake image-v2训练了一个Discriminator-v2
 3. ...
 

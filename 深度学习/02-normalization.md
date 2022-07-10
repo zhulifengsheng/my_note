@@ -59,8 +59,6 @@ $$
 
 $$
 \frac{\partial Norm(W'x)}{\partial x} = \frac{\partial Norm(Wx)}{\partial x} \\
-设y2=k2y1, y1=k1x \\
-\frac{\partial y2}{\partial k1}=\frac{\partial y2}{\partial y1}(这个y_1就相当于上式中的x) \times \frac{\partial y1}{\partial k1}
 $$
 
 
