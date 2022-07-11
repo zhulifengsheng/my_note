@@ -23,7 +23,7 @@ $$
 
 $$
 \begin{aligned}
-Precision &= \frac{TP}{TP+FP}，预测为正的样本中实际为正的比例 \\
+Precision &= \frac{TP}{TP+FP}，预测为正的样本中真实为正的比例 \\
 Recall &= \frac{TP}{TP+FN}，真实为正的样本中预测为正的比例 \\
 F_\beta &= \frac{(1+\beta^2)\times P \times R}{\beta^2 \times P+R}，\beta > 1时Recall更重要，反之Precision更重要
 \end{aligned}

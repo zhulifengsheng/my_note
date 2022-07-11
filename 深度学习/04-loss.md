@@ -35,5 +35,5 @@ $$
 
 因为$y$是one-hot向量，故$L(y,f(x;\theta))=-\log f_y(x;\theta)$，其中$f_y(x;\theta)$可以看作是：模型对输入$x$及其真实类别$y$的似然函数。因此，CE loss也就是负对数似然函数(Negative Log-Likelihood)。**得到$f(x;\theta )$ 的一种方法就是softmax函数**。                                          
 
-## 3.
+
 

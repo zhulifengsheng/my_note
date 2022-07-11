@@ -9,5 +9,5 @@ $$
 (\mathbf{w},b) \leftarrow (\mathbf{w},b) - \frac{\eta}{|\mathcal{B}|} \sum_{i \in \mathcal{B}} \partial_{(\mathbf{w},b)} l^{(i)}(\mathbf{w},b).
 $$
 
-## SGD
+## Momentum 是什么?
 

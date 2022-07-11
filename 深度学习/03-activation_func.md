@@ -37,3 +37,9 @@ $$
 
 
 ## gelu
+
+GELU希望在激活中加入正则化dropout的思想。
+$$
+gelu(x) = \Phi(x)\times x + (1-\Phi(x)) \times 0x = x\Phi(x) 
+$$
+$\Phi(x)$是标准正态分布的累积分布函数，这说明x越小，它被丢弃的可能性越大。
