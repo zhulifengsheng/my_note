@@ -17,6 +17,8 @@
 
 Glove建模语义的基本思想是共现概率矩阵
 
+
+
 ### ELMo
 
 用LSTM模型进行语言模型的训练
@@ -42,17 +44,80 @@ GPT1：decoder，根据上文来预测当前的词 + 有监督finetune
 
 GPT2：作者认为任何的有监督任务都是语言模型的一个子集，当模型容量非常大且数据量丰富时，仅靠LM就可以完成其他有监督任务的学习
 
-GPT3：TODO
+GPT3：作者利用meta-learning 进行 in-context learning 主要的实验点在于zero-shot one-shot few-shot
+
+用LM进行参数学习，然后直接进行下游任务的预测【下游任务不做finetune】
 
 
 
-## BERT
+## 主要内容
 
 GPT是单向的，BERT设计了双向。两个预训练任务MLM和NSP
 
-MLM：15%的MASK进行预测，其中80%用MASK换，10%随机token，10%不变
+MLM：15%的MASK进行预测，其中80%用MASK换，10%随机token，10%不变【MLM可以认为是denoising autoencoder的思想】
 
 NSP：预测是否连续，但是它太简单了，它的负样例来自于不同的document，相当于topic分类+segment连贯性预测的任务。改进的任务是SOP（sentence order prediction），在相同的document中选segment来做预测
+
+
+
+## QA
+
+1. 为什么会在前面使用CLS token
+
+   因为这个无明显语义信息的token会“公平”地融合文本中各个词的语义信息，从而更好地表示整句话的语义
+
+2. BERT的规模
+
+   BASE：L12 H768 A12；LARGE：L24 H1024 A16
+
+3. BERT的非线性来源
+
+   GELU 和 Self-attn（Softmax）
+
+4. BERT的MASK策略改进
+
+   1. BERT WWM：全词掩码，不是只遮掩子词 
+   2. ERINE【百度和清华都有】：引入外部知识，进行短语、实体的MASK 
+      1. 清华：给knowledge entity做一个embedding，它有自己的attention模块。token的attn输出和knowledge entity的输出做融合
+      2. 百度ERINE1.0：把实体和短语进行遮掩，分三个级别MLM->phrase-level masking->entity-level masking递进式训练
+   3. SpanBERT： 本章节记载了SpanBERT，请阅读
+
+5. BERT如何处理长序列文本
+
+   三种方法：截断法、pooling法（将每个segment的表示拼起来）、压缩法（选择需要的segment）
+
+   CogLTX思想：使用压缩法，将一个长文本动态地切成连续的短句子(x[0], ..., x[n])。然后利用judge（一个BERT）从中识别出与任务相关的关键片段组成语块。依据不同任务类型，将关键语块组成满足任务需要的输入格式，送入reasoner（另一个BERT）中。
+
+   Method：
+
+   1. MemRecall算法利用judge模型来检索关键块，作者假设存在一个$z^+$，它可以完全代替长文本$x$。$z^+$被MemRecall动态维护以模拟人类的记忆，在不同的任务中$z^+$初始化的方式也不一样。【QA用Q做初始化】
+      
+      $$
+      \begin{aligned}
+      z^+ &= [CLS\space Q\space SEP\space z_0 \space SEP...z_{n-1}]\\
+      judge(z^+) &= sigmoid(MLP(BERT(z^+)))\\ 
+      Score_{z_i} &= judge(z^+)[z_i]是z_i中所有token的分数均值
+      \end{aligned}
+      $$
+      MemRecall首先进行retrieval competition的粗相关性打分，计算$judge(z^+[SEP]x_i)[x_i]$，得分最高的几个$x_i$被插入到$z$中【左下角就是$z$】。接下来的rehearsal-decay阶段会给每个$z_i$做精相关性打分，计算$judge(z^+)[z_i]$，只有最高分数的$x_i$被保留在$z^+$中，更新$z^+$。【打精分，可以认为是短句子$x_i$相互学习，类似reranking的方式】
+      
+      ![](cogltx.jpg)
+      
+      整个流程会重复进行，需要注意的是如果被$z^+$中的新加入的信息证明相关性不够，之前的一些短句子$x_i$则会decay掉
+
+   2. loss
+
+      - judge监督学习：使用交叉熵，文本中相关的短句子被标记为1，不相关的被标记为0【这个句子中所有的token都会标成1或0】
+
+      - reasoner监督学习：训练时reasoner的输入应该由MemRecall来生成，但是并不能保证所有的相关block都能被检索到。以QA任务为例，如果答案的blcok没有被检索到，reasoner就无法通过检索到的block进行训练，因此解决方案为做一个近似，将所有相关block和retrieval competition中的“winner” block输入到reasoner中进行训练。
+
+      - judge无监督学习：大多数的任务不会提供相关性的label。对于这种情况我们使用干预的手段来推断相关性标签：通过从$z$中剔除某个block来看它是否是不可或缺的。每次训练reasoner后，我们会剔除每个$z$中的$z_i$，然后根据loss的增加调整它们的相关性标签。如果loss的增加是不显著的，则表明这个block是不相关的，它可能在下一个epoch中不会再赢得retrieval competition，因为它将在下一个epoch中被标记为irrelevant来训练judge。
+        $$
+        loss_{reasoner}(z-z_i) - loss_{reasoner}(z) > t\space (需要的) 
+        $$
+        
+   
+6. TODO
 
 
 
@@ -88,3 +153,20 @@ $$
 max(||s_a - s_p|| - ||s_a-s_n||+ϵ,0)
 $$
 
+# SpanBERT
+
+三个扩展点：
+
+1. 对 contiguous random spans 进行MASK
+2. 对 span boundary representation 进行训练，让它在不依赖于masked tokens的表示时可以对masked span中的所有内容进行预测
+2. 去掉了NSP，获得更长的上下文输入
+
+![](span1.jpg)
+
+根据几何分布，先随机选择一段span的长度，之后再根据均匀分布选择这一段的起始位置。
+
+## span boundary representation（SBO）
+
+我们希望能够用span mask的boundary tokens来构建关于span的语义表示。为此，本文作者引入了一个span boundary objective，希望在span边界处的tokens的representations可以对masked span内部的tokens进行预测。
+
+具体做法是在训练时取 Span 前后边界的两个词，值得指出，这两个词不在 Span 内。然后用这两个词向量加上 Span 中被遮盖掉词的位置向量，来预测原词。

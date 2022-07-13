@@ -56,3 +56,57 @@ self-attention的计算过程中两个流的网络权重是共享的，最后在
 
 # ALbert
 
+
+
+# BART
+
+吸收了BERT双向上下文的特点 + GPT自回归的特点
+
+BART = Bert(encoder) + GPT(decoder)
+
+![](bart1.jpg)
+
+BART是一个encoder-decoder的结构，其encoder端的输入是加了噪音的序列，decoder端的输入是right-shifted的序列，decoder端的目标是原序列。模型设计的目的很明确，就是在利用encoder端的双向建模能力的同时，保留自回归的特性，以适用于生成任务。
+
+训练目标：还原加噪文本
+
+加噪方式：
+
+1. BERT的MASK替换
+2. token deletion
+3. text infilling：随机将一段连续的token替换为一个MASK
+4. sentence permutation：根据句号将文档分为多个句子，然后将这些句子随机排列
+5. document rotation：从document中随机选择一个token，然后使得该token作为document的开头
+
+![](bart2.jpg)
+
+损失函数：重构源文的交叉熵
+
+## finetune
+
+机器翻译：
+
+![](bart3.jpg)
+
+将BART encoder的embedding初始化，新的encoder就可以换词表了
+
+finetune分两步
+
+第一步：只更新初始化的encoder，BART positional embedding，BART encoder的第一层的self-attention
+
+第二步：更新全部参数，但只训练很少的轮数
+
+# ELECTRA
+
+
+
+# T5
+
+
+
+# UNILM
+
+
+
+# ERINE2.0
+
