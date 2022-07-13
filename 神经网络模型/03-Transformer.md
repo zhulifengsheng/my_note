@@ -89,5 +89,60 @@
 
      4.前馈神经网络的ReLU后
 
+
+
 ## RPR
 
+相对位置会在Transformer的线性变换中渐渐消失，显式地建模一个相对位置信息可以加强位置信息。
+
+$$
+\begin{aligned}
+e_{ij} &= \frac{x_iW^Q(x_jW^K + \alpha_{ij}^K)^T}{\sqrt{d_z}} \\
+z_i &= \sum_{j=1}^Ne_{ij}(x_jW^V + \alpha_{ij}^V)
+\end{aligned}
+$$
+
+```python
+relative_keys_embedding = nn.Embedding(max_relative_position * 2 + 1, 64)
+def generate_relative_positions_matrix(length, max_relative_position):
+    with torch.no_grad():
+        range_mat = torch,arange(length).extend(length, length)
+        dist_mat = range_mat - range_mat.t()
+        # 截断
+        dist_mat = torch.clamp(dist_mat, -max_relative_position, max_relative_position)
+        # 负值转为正值
+        dist_mat = dist_mat + max_relative_position
+    return dist_mat
+
+# 在代码中加入rpr
+attn_weights = torch.bmm(q, k.transpose(1, 2))
+# 根据当前句子的长度，生成rpr矩阵
+relative_positions_matrix = generate_relative_positions_matrix(src_len, max_relative_position)
+# 得到rpr向量
+relations_keys = relative_keys_embedding(relative_positions_matrix)
+# 将相对位置编码加入attention中
+relations_keys_logits = torch.bmm(q, relations_keys)
+attn_weights += relations_keys_logits
+```
+
+
+
+# 变种
+
+## Transformer-XL
+
+1. segment-level recurrence
+
+   Transformer-XL引入了段与段之间的联系起来，在对当前segment进行处理的时候，缓存并利用上一个segment中所有layer的隐向量序列
+
+2. 相对位置编码
+
+   绝对位置编码不可用，因为在Trm-XL中，每个segment都添加相同的位置编码，多个segments之间无法区分位置关系。XL的做法是在算attention score的时候，只考虑query向量与key向量的相对位置关系，并且将这种相对位置关系，加入到每一层Trm的attention计算中。
+
+   绝对位置编码：$(E_{xi}+U_i)W_q^TW_k(E_{xj}+U_j)$
+   
+   ![](xl1.jpg)
+   ![](xl2.jpg)
+   上述是绝对位置编码和相对位置编码的对比：
+   
+   XL首先将$U_j$替换为$R_{i-j}$；其次，因为$U_iW_q$是固定的，XL将它换成可学习的两个参数$u^T$和$v^T$，分别服务于内容信息和位置信息；最后，将W_k矩阵细分为两组矩阵$W_{k,E}$和$W_{k,R}$，也是服务于内容和位置信息。
