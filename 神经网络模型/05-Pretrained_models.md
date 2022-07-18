@@ -170,17 +170,54 @@ Masked Seq2Seq Pretraining（Autoencoder的味道，重构被MASK的源文）
 
 ## finetune
 
-MASS只需要无监督的单语数据（比如WMT News Crawl Data、Wikipedia Data等）进行预训练。MASS支持跨语言的序列到序列生成（比如机器翻译），也支持单语言的序列到序列生成（比如文本摘要生成、对话生成）。当预训练MASS支持跨语言任务时（比如英语-法语机器翻译），我们在一个模型里同时进行英语到英语以及法语到法语的预训练，需要单独给每个语言加上相应的语言嵌入向量，用来区分不同的语言。
+MASS只需要无监督的单语数据（比如WMT News Crawl Data、Wikipedia Data等）进行预训练。MASS支持跨语言的序列到序列生成（比如机器翻译），也支持单语言的序列到序列生成（比如文本摘要生成、对话生成）。当预训练MASS支持跨语言任务时（比如英语-法语机器翻译），**我们在一个模型里同时进行英语到英语以及法语到法语的预训练**，需要单独给每个语言加上相应的语言嵌入向量，用来区分不同的语言。
 
 
 
-# T5
+# T5（JMLR 2021）
+
+Transfer Text-to-Text Transformer的简写【**将所有的NLP都转变为Text-to-Text的任务**】
+
+![](t5-1.png)
+
+比如上述黄色第三个文本语义相似度任务，T5也可以直接输出文本，而不是以 0.2 为间隔，从 1 到 5 分之间分成 21 个值的分类任务。（和GPT2&3的意思是一样的）
+
+## 模型结构
+
+作者对比了encoder-decoder【MASS BART】、decoder【GPT】、prefix LM【UniLM】，最后选择了encoder-decoder结构
+
+## 预训练
+
+1. 对比训练方法：GPT的语言模型训练方式、BERT的autoencoder训练方式、Deshuffling（文本顺序还原），最后选择了Bert-style
+2. 对比MASK策略：将每个token换成[MASK]、将一个span（多个token）换成一个[MASK]、DROP方法丢弃字符，最后选择了Span法
+3. 对文本的百分之多少进行破坏：10%、15%、25%、50%，最后选择了15%
+4. 对多长的span进行MASK，对比了：2、3、5、10，最后选择了3
 
 
 
-# UNILM
+# UNILM（NIPS 2019）
 
+直接复用BERT的AE结构做seq2seq，NLU直接用BERT做，NLG将S1 [SEP] S2当作encoder-decoder
 
+## 模型结构
+
+![](unilm1.png)
+
+通过模型结构图，可以看出来主要是对attention的mask矩阵进行不同操作
+
+## 预训练目标
+
+- 单向LM
+
+  作者使用了 left2right 和 right2left 两种LM训练方法，每个token在被预测时，只能看到它以及上或下文的token。
+
+- 双向LM
+
+  常规的BERT
+
+- Seq2Seq LM
+
+  A句做双向LM，B句做单向LM
 
 
 
@@ -198,23 +235,32 @@ MASS只需要无监督的单语数据（比如WMT News Crawl Data、Wikipedia Da
 
 # XLM（NIPS 2019）【多语言】
 
-XLM跨语言预训练模型，得到一个可以编码任意语种句子的Transformer模型，这和无监督机器翻译中“表示空间对齐”的概念不谋而合。
+XLM是跨语言预训练模型，它是一个可以编码任意语种句子的Transformer模型，针对多语言预训练提出了3个优化任务。
 
-XLM丢去了NSP，将segment embedding换成了language embedding。
+
 
 ## 全语种混合BPE
 
-为了防止，小语种数据过少，进行加温度的多项式分布采样。$q_i$为这个i语种的句子被选择的概率；$p_i$为这个i语种语料占全部语料的比例。
+首先是构建一个全语言的大词表。为了防止，小语种数据过少，进行加温度的多项式分布采样。$q_i$为这个i语种的句子被选择的概率；$p_i$为这个i语种语料占全部语料的比例。
 $$
 q_i = \frac{p_i^\alpha}{\sum_{j=1}^Np_j^\alpha}\space with\space p_i=\frac{n_i}{\sum_{k=1}^Nn_k}
 $$
 
 ## 预训练任务
 
-1. CLM 基本的语言模型任务，计算PPL
-2. MLM
-3. TLM 利用双语平行句子，借助译文，预测源文中被MASK的词；反之亦然
+<img src="xlm.png" style="zoom:80%;" />
+
+1. CLM 因果语言模型，GPT式的语言模型任务，在单语上做的
+2. MLM 和BERT一样
+3. TLM **利用双语平行句子**，借助对应译文，预测每个语言自身源文中被MASK的词
+
+4. XLM丢去了NSP，将segment embedding换成了language embedding。
 
 ## finetune
 
-用预训练好的参数初始化encoder和decoder，进行有监督MT、无监督MT等任务
+无监督机器翻译：用预训练好的参数初始化encoder和decoder，作者对比了CLM和MLM训练的encoder和decoder，最后发现MLM预训练初始化的encoder和decoder效果最好
+
+有监督机器翻译：和无监督机器翻译一样，用MLM初始化encoder和decoder
+
+**encoder-decoder是两个模型，不是一个模型**
+
