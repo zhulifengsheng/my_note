@@ -62,7 +62,7 @@ $$
 $$
 y(w^Tx+b) \ge 1
 $$
-因为y = {+1， -1}，于是，公式(4)中$||w^Tx+b||$可以写成$||y(w^Tx+b)||$，再结合公式(8)，优化目标可以写作：
+因为y = {+1， -1}，于是，公式(4)中$||w^Tx+b||$可以写成$y(w^Tx+b)$，再结合公式(8)，优化目标可以写作：
 $$
 \begin{aligned}
 &\underset{w,b} {\operatorname{argmax}} \left\{ \underset{i} {\operatorname{min}}[\frac{y_i(w^Tx_i+b)}{||w||}] \right\} \\
@@ -75,7 +75,7 @@ $$
 
 我们要求解的目标是$min\frac{1}{2}||w||^2$，它就是一个条件极值问题，条件是$y_i(w^Tx_i+b) \ge 1$
 
-可以利用拉格朗日乘子法来求解这个问题，经过一系列过程得到。
+可以利用拉格朗日乘子法来求解这个问题，经过一系列过程得到：
 $$
 \underset{\alpha} {\operatorname{max}} \sum_{i=1}^{m}\alpha_i - \frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_i\alpha_jy_iy_jx_i^Tx_j，s.t. \sum_{i=1}^{m}\alpha_iy_i=0, \alpha_i \ge 0
 $$
@@ -89,6 +89,7 @@ $$
 
 有些样本分类不是二维线性可分的，我们使用一个核函数变换，将样本从原始空间映射到一个更高维的特征空间，使得样本在这个特征空间内线性可分，转换为二分类任务。
 $$
+\phi(x_i)表示x_i在高维空间的特征向量 \\
 K(x_i,x_j) = \phi(x_i)^T\phi(x_j)
 $$
 一般使用高斯核函数

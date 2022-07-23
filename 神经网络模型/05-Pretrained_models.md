@@ -221,7 +221,13 @@ Transfer Text-to-Text Transformer的简写【**将所有的NLP都转变为Text-t
 
 
 
-# ELECTRA（generator-discriminator）
+# ELECTRA（ICLR 2020）【generator-discriminator】
+
+ELECTRA最主要的贡献是提出了新的预训练任务和框架，把生成式的Masked language model（MLM）预训练任务改成了判别式的Replaced token detection（RTD）任务，判断当前token是否被替换过？
+
+![](electra.png)
+
+
 
 
 

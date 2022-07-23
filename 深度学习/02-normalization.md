@@ -32,6 +32,8 @@ $$
 
 1. 保证模型的表达能力不因标准化而下降，即防止标准化操作让该层学习到的知识（数据分布）消失
 
+
+
 ## batch normalization
 
 存在的问题：
@@ -55,6 +57,16 @@ $$
 问：为什么NLP使用LN？
 
 答：BN是对每个特征在batch_size上进行缩放，那么应用到NLP上就是对batch内每个位置上的单词进行缩放，这是违背直觉的，自然效果也不好。
+
+## instance normalization
+
+
+
+## group normalization
+
+
+
+
 
 ## normalization为什么有效
 
