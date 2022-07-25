@@ -27,7 +27,7 @@
 
 ![image-20220619160512551](01-autoencoder2.png)
 
-2. feature disentangle
+2. feature disentangle[One-shot Voice Conversion by Separating Speaker and Content Representations with Instance Normalization](https://arxiv.org/abs/1904.05742)
 
    encoder学习（压缩）得到的特征会包含很多的信息，比如对一段声音进行压缩就会包含语音内容和发言者音色、音调等信息。那有没有一种方法可以将这些信息区分开呢？比如，下图将content和speaker的信息区分开。
 
@@ -90,34 +90,72 @@
 
 ### 对比学习的LOSS
 
-1. NCE：给定一个输入$x$，它的正例从$P_d(y|x)$中采样得到，它的负例从$P_n(y|x)$中采样得到。设正例采样个数：负例采样个数为1:k。记正例D=1，采样来自$P_d(y|x)$；负例D=0，采样来自$P_n(y|x)$。         
+1. NCE：给定一个输入$x$，它的正例从$P_d(y|x)$中采样得到，它的负例从$P_n(y|x)$中采样得到。设正例采样个数:负例采样个数为1:k。记正例D=1，采样来自$P_d(y|x)$；负例D=0，采样来自$P_n(y|x)$。
    $$
    \begin{aligned}
-   在所有的样本中采样负例的概率，P(D=0|x) &= \frac{k}{k+1}P_n(y|x) \\
-   在所有的样本中采样正例的概率，P(D=1|x) &= \frac{1}{k+1}P_d(y|x) \\
-   于是，P(y|x) = P(D=0|x)+P(D=1|x)& \\
-   给定x和y，负例的概率，P(D=0|x,y) = \frac{P(D=0,y|x)}{P(y|x)} &= \frac{P(D=0|x)}{P(y|x)} = \frac{kP_n(y|x)}{P_d(y|x) + kP_n(y|x)} \\
-   给定x和y，正例的概率，P(D=1|x,y) = \frac{P(D=1,y|x)}{P(y|x)} &= \frac{P(D=1|x)}{P(y|x)} = \frac{P_d(y|x)}{P_d(y|x) + kP_n(y|x)} \\
-   现在我们用神经网络\theta去拟合正例的分布，P(D=1|x,y,\theta) &= \frac{P_\theta(y|x)}{P_\theta(y|x) + kP_n(y|x)} \\
-   这也就是NCE要做的事情，P(D=0|x,y,\theta) &= \frac{kP_n(y|x)}{P_\theta(y|x) + kP_n(y|x)}
+   P(D=0,y|x) = \frac{k}{k+1}P_n(y|x) &;\space
+   P(D=1,y|x) = \frac{1}{k+1}P_d(y|x) \\
+   假设一个样本y既可能是被选做正例，也可能被选做负例，P(y|x) &= P(D=0,y|x)+P(D=1,y|x) \\
+   P(D=0|x,y) = \frac{P(D=0,y|x)}{P(y|x)} &= \frac{kP_n(y|x)}{P_d(y|x) + kP_n(y|x)} \\
+   P(D=1|x,y) = \frac{P(D=1,y|x)}{P(y|x)} &= \frac{P_d(y|x)}{P_d(y|x) + kP_n(y|x)} \\
+   现在我们用神经网络\theta，P(D=1|x,y,\theta) &= \frac{P_\theta(y|x)}{P_\theta(y|x) + kP_n(y|x)} \\
+   来拟合正例的分布P_d，P(D=0|x,y,\theta) &= \frac{kP_n(y|x)}{P_\theta(y|x) + kP_n(y|x)}
    \end{aligned}
    $$
-   **解决问题：给定一个输出$y$，判断它是输入$x$的正例还是负例（二分类）**  
+   ```
+   我们来用一个实例来模拟上面的公式
+   输入x为“你”，构建一个正例“好”的概率为0.8；构建一个负例“好”的概率为0.1
+   设k等于9
+   p(负例的好|你) = 9/10*0.1 = 0.09
+   p(正例的好|你) = 1/10*0.8 = 0.08
+   p(好|你) = 0.17
+   p(负例|你，好) = 9/17
+   p(正例|你，好) = 8/17
+   ```
+   
+   **现在需要解决的问题是：给定一个输出$y$，判断它是输入$x$的正例还是负例（二分类）**  
    $$
    \begin{aligned}
-   \log P(D|y,x,\theta) &= \sum_yP(y|x)\log P(D|y,x,\theta) \\
-   &= \sum_y\frac{1}{k+1}[P_d(y|x) + kP_n(y|x)] \log P(D|y,x,\theta) \\
-   &= \frac{1}{k+1}[\sum_yP_d(y|x)\log P(D|y,x,\theta) + k\sum_yP_n(y|x) \log P(D|y,x,\theta)] \\
-   &= \frac{1}{k+1}[\sum_yP_d(y|x)\log P(D=1|y,x,\theta) + k\sum_yP_n(y|x) \log P(D=0|y,x,\theta)] \\
-   &= \frac{1}{k+1}[\sum_yP_d(y|x)\log \frac{P_\theta(y|x)}{P_\theta(y|x) + kP_n(y|x)} + k\sum_yP_n(y|x) \log \frac{kP_n(y|x)}{P_\theta(y|x) + kP_n(y|x)}] \\
-   一般正样本就是1个&，负样本采样k个，再将常数项的k+1约掉，就可以得到下式\\
-   &= \log \frac{P_\theta(y|x)}{P_\theta(y|x)+kP_n(y|x)} + k\log \frac{kP_n(y|x)}{P_\theta(y|x)+kP_n(y|x)}
+   根据交叉熵损失，
+   Loss_{NCE} &= -\log P\left( 正例|x,y,\theta \right) -\sum_{j=1}^k{\log P\left( 负例|x,y_{j},\theta \right)} \\
+   &= -\log \frac{P_\theta(y|x)}{P_\theta(y|x)+kP_n(y|x)} - \sum_{j=1}^{k}\log \frac{kP_n(y_j|x)}{P_\theta(y_j|x)+kP_n(y_j|x)}
    \end{aligned}
    $$
-   于是，我们希望可以最大化**似然函数**，即loss就是最大化上面的函数。
+   
+   ------
+   
+   在Skip-gram的词向量训练实践中，就会使用负采样技术，构建标签为0的负例token上下文对，然后用模型进行逻辑回归的学习（二分类交叉熵损失）。
    
    
    
-2. InfoNCE
+2. InfoNCE：互信息表示两个相关变量的相互依赖程度，如下图所示，要预测的未来信息$x_{t+k}$和当前时刻的全局信息$c_t$的依赖程度越高，就越可以得到好的预测结果。
 
-​		
+    ![](cpc.png)
+    
+    互信息的公式见[机器学习第一章](my_note\机器学习\01-machine_learning.md)
+    
+    ------
+    
+    为了最大化互信息，我们使用InfoNCE，用神经网络来拟合正负样本的概率密度比（它表明正样本的密度比大，负样本的密度比小，可以认为是一种相似性的度量），公式如下：
+    $$
+    f_k(x_{t+k}, c_t, \theta) \propto \frac{p(x_{t+k}|c_t)}{p(x_{t+k})} \\
+    L_N = -\log \frac{f_k(x_{t+k}, c_t, \theta)}{\sum_{x_j \in X}f_k(x_j, c_t, \theta)}
+    $$
+    
+    现在证明它和互信息的关系：
+    $$
+    \begin{aligned}
+    L_N &= -\log \frac{f_k(x_{t+k}, c_t, \theta)}{\sum_{x_j \in X}f_k(x_j, c_t, \theta)} \\
+    &= -\log \frac{\frac{p(x_{t+k}|c_t)}{p(x_{t+k})}}{\frac{p(x_{t+k}|c_t)}{p(x_{t+k})} +\sum_{x_j \in X_{neg}}\frac{p(x_j|c_t)}{p(x_j)}} \\
+    &= \log(1+\frac{p(x_{t+k})}{p(x_{t+k}|c_t)}\sum_{x_j \in X_{neg}}\frac{p(x_j|c_t)}{p(x_j)}) \\
+    &\approx \log(1+\frac{p(x_{t+k})}{p(x_{t+k}|c_t)}(N-1)E_{x_j}\frac{p(x_j|c_t)}{p(x_j)}) \\
+    &= \log(1+\frac{p(x_{t+k})}{p(x_{t+k}|c_t)}(N-1)) \\
+    &\ge \log\frac{p(x_{t+k})}{p(x_{t+k}|c_t)}N \\
+    &= - I(x_{t+k};c_t) +\log N
+    \end{aligned}
+    $$
+    InfoNCE可以认为是NCE的多分类版本，可以将上面的$L_N$看作是经过softmax函数得到的交叉熵。
+
+### 对比学习的经典paper
+
+#### MoCo
