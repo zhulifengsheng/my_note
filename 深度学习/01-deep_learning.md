@@ -132,7 +132,7 @@
 
     ![](cpc.png)
     
-    互信息的公式见[机器学习第一章](my_note\机器学习\01-machine_learning.md)
+    互信息的公式见[机器学习第一章](../机器学习/01-machine_learning.md)
     
     ------
     
