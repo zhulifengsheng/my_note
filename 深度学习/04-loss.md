@@ -1,16 +1,14 @@
 [TOC]
 
-# 常用的损失函数
-
-## 1. mean squared error(均方误差)
+# 1. mean squared error(均方误差)
 
 $$
 l_n = (x_n - y_n)^2
 $$
 
-## 2. cross entropy loss(交叉熵损失=log对数损失)
+# 2. cross entropy loss(交叉熵损失=log对数损失)
 
-### a. BCE(binary cross entropy)
+## a. BCE(binary cross entropy)
 
 现在有两个类别$a,b$，$q(a)$是模型预测为a类别的概率，$q(b)$是模型预测为b类别的概率；$p(a)$是真实标签a类别的概率，$p(b)$是真实标签为b类别的概率，二分类的交叉熵函数公式如下：
 $$
@@ -22,7 +20,7 @@ L(p, q) = - (p(a)\log q(a) + (1-p(a))\log (1-q(a)))
 $$
 
 
-### b. CE
+## b. CE
 
 扩展到多分类的情况，设有$C$个类别，真实值为长度$C$的one-hot向量$y$，用于表示该样本属于那个类别。模型预测值为长度$C$的向量$f(x;\theta)$，$f_c(x;\theta)$表示输出向量的第C维
 
@@ -37,5 +35,6 @@ $$
 
 
 
-## 3. 对比学习的loss
+# 3. 对比学习的loss
 
+[对比学习的loss](01-deep_learning.md#对比学习的LOSS)

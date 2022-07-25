@@ -27,7 +27,7 @@
 
 ![image-20220619160512551](01-autoencoder2.png)
 
-2. feature disentangle[One-shot Voice Conversion by Separating Speaker and Content Representations with Instance Normalization](https://arxiv.org/abs/1904.05742)
+2. feature disentangle [One-shot Voice Conversion by Separating Speaker and Content Representations with Instance Normalization](https://arxiv.org/abs/1904.05742)
 
    encoder学习（压缩）得到的特征会包含很多的信息，比如对一段声音进行压缩就会包含语音内容和发言者音色、音调等信息。那有没有一种方法可以将这些信息区分开呢？比如，下图将content和speaker的信息区分开。
 
@@ -132,7 +132,7 @@
 
     ![](cpc.png)
     
-    互信息的公式见[机器学习第一章](../机器学习/01-machine_learning.md)
+    互信息的公式见[机器学习第一章](../机器学习/01-machine_learning.md#互信息)
     
     ------
     
