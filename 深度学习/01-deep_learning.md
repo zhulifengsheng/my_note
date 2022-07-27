@@ -158,4 +158,4 @@
 
 ### 对比学习的经典paper
 
-#### MoCo
+#### [视频](https://www.bilibili.com/video/BV1C3411s7t9/?spm_id_from=333.788&vd_source=0cb506ddc76d40ec3b32014ba5fe9ccb)

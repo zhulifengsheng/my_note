@@ -62,7 +62,7 @@ $$
 
 ![](normalization.jpg)
 
-Instance normalization是对单个图片的单个通道进行normalization，适用于图片生成任务（如图片风格迁移，将从一张图片的所有像素点上学习到的风格信息作用于另一张图片的所有像素点）
+Instance normalization是对单个图片的单个通道进行normalization，适用于图片风格迁移任务，将从一张图片的所有像素点上学习到的风格信息（mean和variance统计量）作用于另一张图片的所有像素点。
 
 
 

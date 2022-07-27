@@ -102,6 +102,7 @@ CRF的转移特征函数会被随机初始化【可以人为设定一些绝对�
 ```python
 # 初始状态能量
 score = self.start_transitions[tags[0]]
+
 # 第一个token其对应label的概率能量（emissions来自于LSTM）
 score += emissions[0, torch.arange(batch_size), tags[0]]
 for i in range(1, seq_length):
@@ -110,6 +111,8 @@ for i in range(1, seq_length):
     # shape: (batch_size,)
     # 加上状态特征函数的能量
     score += emissions[i, torch.arange(batch_size), tags[i]]
+
+# LOSS：希望对应label的score大，其他label的score小 
 ```
 
 【注：CRF是对LSTM的输出进行了修正，避免了不符合序列排序的实体片段生成】
