@@ -4,7 +4,7 @@
 
 ## 词向量的发展历史
 
-### word2vec
+### [word2vec](https://blog.csdn.net/sealir/article/details/85204630)
 
 利用自监督训练的语言模型任务来学习到好的词向量表示
 
@@ -13,11 +13,53 @@
 
 ![image-20220711165658765](word2vec.png)
 
+缺点：
 
+1. 只能捕获窗口大小的局部上下文信息
+
+计算效率优化：
+
+1. 分层softmax【隐藏层中间表示不再通过参数矩阵直接投影到词表大小；而是投影到哈夫曼树中】：根据词的权重建立一颗哈夫曼编码树【每个非叶子结点都有自己的维度参数】，在预测某个单词时，将softmax的多分类计算转为多个二分类计算，从而减小计算量。
+
+   eg：CBOW根据上下文预测“足球”
+
+   <img src="word2vec-softmax.png" style="zoom: 67%;" />
+
+   <img src="word2vec-softmax2.png" style="zoom:67%;" />
+
+2. 负采样【对比学习，NCE思想的应用】：构造标签为0的负样本对。
+
+   负样本的选择应该尽可能贴近真实数据分布，让高频词作为负样本的概率大一点，低频词作为负样本的概率小一点。每个词被选择的概率为
+   $$
+   p(w) = \frac{counter(w)^{0.75}}{\sum_{u \in D}counter(u)^{0.75}}
+   $$
+   
 
 ### Glove
 
-Glove建模语义的基本思想是共现概率矩阵
+Glove建模语义的基本思想是共现概率矩阵，先介绍一下**共现矩阵**如下图所示
+
+![](glove1.png)
+
+共现矩阵有如下几个特点：
+
+1. 它是对称的
+2. 它统计的是整个语料库而不是一句话，一个文章的信息，具有全局性
+3. 统计的是单词对在给定环境中的共现次数，可以反映单词之间的关系
+
+**共现概率矩阵**
+
+![](glove2.png)
+
+现在做完统计之后，就可以将得到的共现概率比，作为标签：
+
+![](glove3.png)
+
+
+
+### Fasttext
+
+fasttext是早期的文本分类算法
 
 
 
@@ -48,7 +90,7 @@ GPT1：decoder模型，根据**上文**来预测当前的词做预训练
 
 ![](gpt1.jpg)
 
-GPT2&3：作者将各种任务都转换为LM任务【如，机器翻译：EN 》ZH，EN》[待预测的中文译文]】，认为任何的有监督任务都是语言模型的一个子集，当模型容量非常大且数据量丰富时，仅靠LM就可以完成其他有监督任务的学习。当大模型训练好后，在下游任务上不做训练，直接zero-shot one-shot few-shot性能就可以很好。
+GPT2&3：作者将各种任务都转换为LM任务【如，机器翻译：EN 》ZH，EN》[待预测的中文译文]】，认为任何的有监督任务都是语言模型的一个子集，当模型容量非常大且数据量丰富时，仅靠LM就可以完成其他有监督任务的学习。当大模型训练好后，在下游任务上不做训练，直接zero-shot one-shot few-shot（few-shot GPT3也不做微调）性能就可以很好。
 
 
 
@@ -81,7 +123,7 @@ NSP：预测是否连续，但是它太简单了，它的负样例来自于不�
    1. BERT WWM：全词掩码，不是只遮掩子词 
    2. ERINE【百度和清华都有】：引入外部知识，进行短语、实体的MASK 
       1. 清华：给knowledge entity做一个embedding，它有自己的attention模块。token的attn输出和knowledge entity的输出做融合，下一章节记载了ERINE清华，请阅读
-      2. 百度ERINE1.0：把实体和短语进行遮掩，分三个级别MLM->phrase-level masking->entity-level masking递进式训练，下一章节记载了ERINE百度，请阅读
+      2. 百度：把实体和短语进行遮掩，分三个级别MLM->phrase-level masking->entity-level masking递进式训练，下一章节记载了ERINE百度，请阅读
    3. SpanBERT： 本章节记载了SpanBERT，请阅读
 
 5. BERT如何处理长序列文本
@@ -96,7 +138,7 @@ NSP：预测是否连续，但是它太简单了，它的负样例来自于不�
 
 在语义相似度计算的任务上，Bert需要送入AB句，假设有1000个句子，两两计算相似度，则需要计算1000*999/2次。
 
-Sentence-Bert采用孪生网络，将不同的句子输入到两个bert中（共享参数），得到句子的表征向量，用于语义相似度计算和无监督聚类。【关键点就在于将每个句子的bert输出嵌入到一个空间中】
+Sentence-Bert采用孪生网络，将不同的句子输入到两个bert中（共享参数），得到句子的表征向量，用于语义相似度计算和无监督聚类。【关键点就在于如何将每个句子的bert输出嵌入到一个空间中】
 
 ## loss设计
 
@@ -123,12 +165,14 @@ $$
 max(||s_a - s_p|| - ||s_a-s_n||+ϵ,0)
 $$
 
+
+
 # SpanBERT（TACL 2020）
 
 三个扩展点：
 
 1. 对 contiguous random spans 进行MASK，不做80 10 10，全都是[MASK]
-2. 对 span boundary representation 进行训练，它的意图是仅使用span的边界词来预测span内容，让span的边界token存储整个span的信息，这在下游任务上是有用的。 
+2. 对 span boundary representation 进行训练，它的意图是使用span的边界词来预测span内容，让span的边界token存储整个span的信息，这在下游任务上是有用的。 
 2. 去掉了NSP，获得更长的上下文输入
 
 ![](span1.jpg)
@@ -174,6 +218,8 @@ CogLTX思想：使用压缩法，将一个长文本动态地切成连续的短�
      $$
      loss_{reasoner}(z-z_i) - loss_{reasoner}(z) > t\space (需要的)
      $$
+
+
 
 # StructBert（ICLR 2020）
 

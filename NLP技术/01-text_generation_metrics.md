@@ -6,19 +6,19 @@ BLEU的核心是对翻译结果查准率（precision）的度量，它采用的�
 
 eg:
 
-- 机器译文： the the the the
+- 机器译文：the the the the
 - 参考译文：the cat is standing on the ground
 
 1-gram：机器译文一共有4个单词，计算每个单词是否出现在参考译文中，因为上述例子中4个单词都是the，所以这4个单词都出现再来参考译文中，BLEU1=4/4=100%。但这显然不合适，因为参考译文中最多只有两个the，所以我要按照下面的公式修正一下，BLEU1=2/4=50%：
 $$
 Count_{clip} = min(count, max\_ref\_count) \\
-p_n = \frac{\sum_{ngram \in C}Count_{clip}(ngram)}{\sum_{ngram' \in C'}Count(ngram')}
+p_n = \frac{\sum_{ngram \in 机器译文}Count_{clip}(ngram)}{\sum_{ngram' \in 参考译文}Count(ngram')}
 $$
 同理，我们会扩展到BLEU2 BLEU3 BLEU4上，将BLEU1-4的查准率取log，然后进行加权求和。
 $$
 BLEU = BP \times \exp(\sum_{n=1}^Nw_n\log p_n)
 $$
-还有一个问题是机器译文过短导致的异常高分的BLEU
+现在，还有一个问题是机器译文过短导致的异常高分的BLEU
 
 eg:
 
