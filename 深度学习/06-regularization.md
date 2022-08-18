@@ -55,6 +55,8 @@ $$
 \mathbf{g} \leftarrow \min\left(1, \frac{\theta}{\|\mathbf{g}\|}\right) \mathbf{g}.
 $$
 
+解决梯度爆炸
+
 
 
 ## code
