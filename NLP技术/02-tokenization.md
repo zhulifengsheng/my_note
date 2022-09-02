@@ -22,8 +22,6 @@ eg：有单词合并表 [u, g] [h, ug]，给一个单词mhug，得到 [UNK, hug]
 
 
 
-
-
 # WordPiece
 
 learn wordpiece：首先将单词切分为字符，不同于bpe在后面添加</w>，word piece在每个非首字符前面添加##

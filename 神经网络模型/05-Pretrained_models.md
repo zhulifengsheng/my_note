@@ -17,7 +17,7 @@ xlnet作为bert的升级版，对以下三个方面进行了优化
 
 为了引入**上下文信息**，xlnet将句子token顺序进行重排序，将上文中的部分单词和下文中的部分单词进行对换，来实现预测当前词时，引入了上下文信息【实际上是利用attention mask来实现这一点，不再是用future mask遮掩上三角矩阵】
 
-因为排列方式有很多【排列组合$A_n^n$】，所以每个输入采样一个排列
+因为排列方式有很多【排列组合$A_n^n$】，所以每个输入只采样一个排列来减少时间复杂度
 
 
 
@@ -40,7 +40,7 @@ xlnet作为bert的升级版，对以下三个方面进行了优化
 ## 总流程图
 ![](xlnet1.png)
 
-self-attention的计算过程中两个流的网络权重是共享的，在训练阶段使用**query流**的输出进行训练；而在finetune阶段，去掉查询流，使用**内容流**进行训练，就是传统的Transformer了。
+self-attention的计算过程中两个流的网络权重是共享的，在训练阶段使用**查询流**的输出进行训练；而在finetune阶段，去掉查询流，使用**内容流**进行训练，就是传统的Transformer了。
 
 ## 集成Transformer-XL
 
@@ -271,6 +271,8 @@ $$
 3. TLM **利用双语平行句子**，借助对应译文，预测源文中被MASK的词
 
 4. XLM丢去了NSP，将segment embedding换成了language embedding。
+
+
 
 ## finetune
 

@@ -19,7 +19,7 @@
 
 计算效率优化：
 
-1. 分层softmax【隐藏层中间表示不再通过参数矩阵直接投影到词表大小；而是投影到哈夫曼树中】：根据词的权重建立一颗哈夫曼编码树【每个非叶子结点都有自己的维度参数】，在预测某个单词时，将softmax的多分类计算转为多个二分类计算，从而减小计算量。
+1. 分层softmax【隐藏层中间表示不再通过参数矩阵直接投影到词表大小，而是投影到哈夫曼树中】：根据词的权重（词频）建立一颗哈夫曼编码树【每个非叶子结点都有自己的维度参数】，在预测某个单词时，将softmax的多分类计算转为多个二分类计算，从而减小计算量。
 
    eg：CBOW根据上下文预测“足球”
 
@@ -37,7 +37,7 @@
 
 ### Glove
 
-Glove建模语义的基本思想是共现概率矩阵，先介绍一下**共现矩阵**如下图所示
+Glove建模语义的基本思想是共现概率矩阵，先介绍一下**共现矩阵**，如下图所示
 
 ![](glove1.png)
 
@@ -122,15 +122,15 @@ NSP：预测是否连续，但是它太简单了，它的负样例来自于不�
 
    1. BERT WWM：全词掩码，不是只遮掩子词 
    2. ERINE【百度和清华都有】：引入外部知识，进行短语、实体的MASK 
-      1. 清华：给knowledge entity做一个embedding，它有自己的attention模块。token的attn输出和knowledge entity的输出做融合，下一章节记载了ERINE清华，请阅读
-      2. 百度：把实体和短语进行遮掩，分三个级别MLM->phrase-level masking->entity-level masking递进式训练，下一章节记载了ERINE百度，请阅读
-   3. SpanBERT： 本章节记载了SpanBERT，请阅读
+      1. 清华：给knowledge entity做一个embedding，它有自己的attention模块。token的attn输出和knowledge entity的输出做融合，下一章节记载了ERINE清华
+      2. 百度：把实体和短语进行遮掩，分三个级别MLM->phrase-level masking->entity-level masking递进式训练，下一章节记载了ERINE百度
+   3. SpanBERT： 本章节记载了SpanBERT
 
 5. BERT如何处理长序列文本
 
    三种方法：截断法、pooling法（将每个segment的表示拼起来）、压缩法（选择需要的segment）
 
-   本章节记载了CogLTX，请阅读
+   本章节记载了CogLTX
 
 
 
@@ -181,9 +181,9 @@ $$
 
 ## span boundary representation（SBO）
 
-我们希望能够用span mask的boundary tokens来构建关于span的语义表示。为此，本文作者引入了span boundary objective，用span边界处的tokens的representations对masked span内部的tokens进行预测。预测span中每个token的信息还会加上一个相对位置编码。
+我们希望能够用span mask的boundary tokens来构建关于span的语义表示。为此，本文作者引入了span boundary objective，用span边界处的tokens的representations对masked span内部的tokens进行预测。预测span中每个token的信息时还会加上一个相对位置编码。
 
-如上图所示，具体做法是在训练时取 Span 前后边界的两个词，值得指出，这两个词不在 Span 内。然后用这两个词向量加上 Span 中被遮盖掉词的相对位置信息来预测原词。
+如上图所示，具体做法是在训练时取 Span 前后边界的两个词（这两个词不在 Span 内），然后用这两个词向量加上 Span 中被遮盖掉词的相对位置信息来预测原词。
 
 
 
