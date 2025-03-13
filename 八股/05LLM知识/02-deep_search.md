@@ -34,6 +34,8 @@ pre-writing stage（搜索query相关的信息生成大纲） + writing stage（
 6. 并行生成各章节的正文
 7. 合并所有章节去除各章节中重复的部分
 
+### co-storm的改进
+
 
 ## 百家争鸣
 ### jina
