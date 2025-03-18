@@ -1,5 +1,4 @@
-# OPENAI模型发展史
-> https://zhuanlan.zhihu.com/p/590655677  
+# 大模型发展史
 
 ## InstructGPT（2022.01.27）
 https://arxiv.org/abs/2203.02155
