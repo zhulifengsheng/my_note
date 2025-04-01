@@ -60,6 +60,81 @@ $e_{i, j}=\frac{Q_{i} K_{j}^{T}}{\sqrt{H}}$(原Attention公式)  -> $e_{i, j}=\f
 ## GPT-4（2023.03.15）
 
 ## LLama2（2023.07.18）
+> https://arxiv.org/pdf/2307.09288
+
+模型结构的改进：
+1. GQA（分组查询注意力）
+![](gqa.jpg)
+标注的MHA见图中最左边的示例，每个query head都有对应的key head和value head；而GQA将query head分成了多个组，每个组共享一个key head和value head。
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+# MHA
+class MultiHeadAttention(nn.Module):
+    def __init__(self, embed_dim, num_heads):
+        super(MultiHeadAttention, self).__init__()
+
+        self.num_heads = num_heads
+
+        # 计算每个头的维度大小
+        self.head_dim = embed_dim // num_heads
+
+        # 定义Q K V的线性变换层
+        self.q_linear = nn.Linear(embed_dim, embed_dim)
+        self.k_linear = nn.Linear(embed_dim, embed_dim)
+        self.v_linear = nn.Linear(embed_dim, embed_dim)
+
+        # 最终输出变换
+        self.output_linear = nn.Linear(embed_dim, embed_dim)  
+
+    def forward(self, x, mask=None):
+        # x.size: batch_size, seq_len, embed_dim
+        batch_size, seq_len, embed_dim = x.size()
+
+        # 线性变换得到q k v 然后将embed_dim维度分割成多个头
+        # 形状变换: (batch_size, seq_len, embed_dim) -> (batch_size, seq_len, num_heads, head_dim)
+        # 转置维度: (batch_size, num_heads, seq_len, head_dim)
+        q = self.q_linear(x).view(batch_size, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
+        k = self.k_linear(x).view(batch_size, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
+        v = self.v_linear(x).view(batch_size, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
+
+        # 计算缩放点积注意力（Scaled Dot-Product Attention），每个头都有独立的注意力分数
+        # 注意力分数: (batch_size, num_heads, seq_len, seq_len)
+        multihead_attention_scores = torch.matmul(q, k.transpose(-2, -1)) / torch.sqrt(torch.tensor(self.head_dim))
+
+        # 应用掩码（如果需要）
+        if mask is not None:
+            multihead_attention_scores = multihead_attention_scores.masked_fill(mask == 0, float('-inf'))
+        
+        # 计算注意力权重
+        multihead_attention_weights = F.softmax(multihead_attention_scores, dim=-1)
+
+        # 计算上下文向量
+        # (batch_size, num_heads, seq_len, seq_len) x (batch_size, num_heads, seq_len, head_dim) = (batch_size, num_heads, seq_len, head_dim)
+        context = torch.matmul(multihead_attention_weights, v)
+
+        # 合并多个头
+        # 转置维度: (batch_size, seq_len, num_heads, head_dim)
+        context = context.transpose(1, 2).contiguous()
+        # 重塑形状: (batch_size, seq_len, embed_dim)
+        context = context.view(batch_size, seq_len, embed_dim)
+
+        output = self.output_linear(context)
+        return output
+
+x = torch.randn(2, 4, 512)          # batch_size:2 seq_len:4 dim:512
+mha = MultiHeadAttention(512, 8)    # 8个头
+output = mha(x)
+
+# GQA
+class xx(nn.Module):
+
+```
+GQA的优点：1. 模型性能和MHA几乎相同的同时，**节约显存空间，减少了计算量，提升速度**。
+> 引申MQA，G=1的GQA注意力机制：大幅降低计算量，但损失性能
 
 ## Qwen（2023.08.03）
 > https://github.com/QwenLM
@@ -67,6 +142,9 @@ $e_{i, j}=\frac{Q_{i} K_{j}^{T}}{\sqrt{H}}$(原Attention公式)  -> $e_{i, j}=\f
 ## Qwen1.5（2024.02.05）
 
 ## LLama3（2024.04.18）
+> https://ai.meta.com/blog/meta-llama-3/
+
+
 
 ## GPT-4o（2024.05.14）
 
