@@ -37,12 +37,12 @@ $\bar{a}_{i}=\frac{a_{i}}{\operatorname{RMS}(\mathbf{a})} g_{i}, \quad \text { w
 
 SwiGLU是门控线性单元（GLU）的一种，GLU其实不算是一种激活函数，而是一种**神经网络层**。它是一个线性变换后面接门控机制的结构。其中门控机制是一个sigmoid函数用来控制信息能够通过多少。  
 
-$\operatorname{GLU}(x, W, V, b, c)=\sigma(x W+b) \otimes(x V+c)$
+$\operatorname{GLU}(x, W, V, b, c)=\sigma(x W+b) \otimes(x V+c)$  
 $\operatorname{SwiGLU}(x, W, V, b, c)=\operatorname{Swish}_{1}(x W+b) \otimes(x V+c)$  
 $\operatorname{Swish}_{1}(x)=x \sigma(1 x)$  
 $\operatorname{ReLU}(x, W, V, b, c)=\max(0, x W+b)\otimes(x V+c)$  
 
-**优点**：SwiGLU相比于ReLU在Transformer架构下能降低约1-2%的困惑度
+**优点**：SwiGLU相比于ReLU在Transformer架构下能降低约1-2%的困惑度，对ReLU更平滑
 
 3. RoPE(Rotary Position Embedding)旋转位置编码  
 > https://zhuanlan.zhihu.com/p/647109286  （旋转位置编码公式的推导）
@@ -58,6 +58,7 @@ $e_{i, j}=\frac{Q_{i} K_{j}^{T}}{\sqrt{H}}$(原Attention公式)  -> $e_{i, j}=\f
 > 外推性是指大模型在**训练时和预测时的输入长度不一致**，导致模型的泛化能力下降的问题。例如，如果一个模型在训练时只使用了512个 token 的文本，那么在预测时如果输入超过512个 token，模型可能无法正确处理。这就限制了大模型在处理长文本或多轮对话等任务时的效果。
 
 ## GPT-4（2023.03.15）
+OpenAI没有给出技术细节报告
 
 ## LLama2（2023.07.18）
 > https://arxiv.org/pdf/2307.09288
@@ -130,21 +131,91 @@ mha = MultiHeadAttention(512, 8)    # 8个头
 output = mha(x)
 
 # GQA
-class xx(nn.Module):
+class GroupedQueryAttention(nn.Module):
+    def __init__(self, embed_dim, num_heads, num_groups):
+        super(GroupedQueryAttention, self).__init__()
+        self.num_heads = num_heads
+        self.head_dim = embed_dim // num_heads
+        self.num_groups = num_groups
 
+        # 定义线性变换层
+        self.q_linear = nn.Linear(embed_dim, embed_dim)
+        self.k_linear = nn.Linear(embed_dim, self.head_dim * num_groups)
+        self.v_linear = nn.Linear(embed_dim, self.head_dim * num_groups)
+        self.output_linear = nn.Linear(embed_dim, embed_dim)
+
+    def forward(self, x):
+        batch_size, seq_len, embed_dim = x.size()
+
+        q = self.q_linear(x).view(batch_size, seq_len, self.num_heads, self.head_dim)
+        # k v 重塑形状，得到的是组数，而不是头数
+        k = self.k_linear(x).view(batch_size, seq_len, self.num_groups, self.head_dim)
+        v = self.v_linear(x).view(batch_size, seq_len, self.num_groups, self.head_dim)
+
+        # 将K和V扩展到与查询头数匹配
+        # (batch, seq_len, num_heads(copy了 self.num_heads // self.groups 份), head_dim)
+        k = k.repeat_interleave(self.num_heads // self.num_groups, dim=2)  
+        v = v.repeat_interleave(self.num_heads // self.num_groups, dim=2)
+
+        # ==========================后面就和正常的MHA一样了===============================#
+        # 调整维度顺序以便矩阵乘法
+        # (batch, num_heads, seq_len, head_dim)
+        q = q.transpose(1, 2)  
+        k = k.transpose(1, 2)
+        v = v.transpose(1, 2)
+
+        # 计算注意力分数
+        # (batch, num_heads, seq_len, seq_len)
+        scores = torch.matmul(q, k.transpose(-2, -1)) / torch.sqrt(torch.tensor(self.head_dim))
+        
+        attn_weights = F.softmax(scores, dim=-1)
+
+        # (batch_size, num_heads, seq_len, head_dim)
+        context = torch.matmul(attn_weights, v) 
+
+        # 合并多个头
+        # 转置维度: (batch_size, seq_len, num_heads, head_dim)
+        context = context.transpose(1, 2).contiguous()
+        # 重塑形状: (batch_size, seq_len, embed_dim)
+        context = context.view(batch_size, seq_len, embed_dim)
+        
+        output = self.output_linear(context)
+
+        return output
 ```
-GQA的优点：1. 模型性能和MHA几乎相同的同时，**节约显存空间，减少了计算量，提升速度**。
+
+GQA的优点：1. 模型性能和MHA几乎相同的同时，**节约 KV-Cache(推理阶段，保存前序token计算过的KV向量) 显存空间，减少了计算量，提升速度**。
 > 引申MQA，G=1的GQA注意力机制：大幅降低计算量，但损失性能
 
 ## Qwen（2023.08.03）
-> https://github.com/QwenLM
+> https://github.com/QwenLM  
+> https://arxiv.org/pdf/2309.16609 (官方技术报告)
+
+### 模型改变
+1. Embedding和Output Projection不再共享  
+原因：基于初步的实验结果，使用独立的权重矩阵（untied weights）可以**获得更好的性能**。这可能是因为输入嵌入和输出投影在功能上有不同的需求，使用独立的权重可以更好地满足各自的需求。代价是增大了模型的参数
+
+2. RoPE  
+矩阵使用的是高精度FP32，提升模型对序列中相对位置关系的理解，提升处理位置敏感任务的性能
+
+3. 在大多数层中移除Bias，但在QKV上保留以提升模型的外推能力  
+提升模型的稳定性、减少参数、降低过拟合风险；但在注意力层保持Bias可以增强模型的外推能力，更好地捕获数据特征，提升模型在处理未知数据的表现
+
+4. 使用pre-norm（基本上就是一个共识）  
+提升模型的稳定性，缓解梯度消失和梯度爆炸。加快模型的收敛速度
+
+5. RMSNorm  
+见LLama
+
+6. SwiGLU  
+见LLama
+
 
 ## Qwen1.5（2024.02.05）
 
 ## LLama3（2024.04.18）
 > https://ai.meta.com/blog/meta-llama-3/
-
-
+没有特别多的技术讲解
 
 ## GPT-4o（2024.05.14）
 
