@@ -1,4 +1,4 @@
-from collections import deque
+from collections import deque, Counter
 import heapq    # 小顶堆（优先队列）
 
 # 维护data这个小顶堆
@@ -6,6 +6,19 @@ import heapq    # 小顶堆（优先队列）
 # heapq.heappush(data, item)    # 加入值
 # heapq.heappop(data)           # 弹出最小值
 
+# 347. 
+def topKFrequent(nums, k: int):
+    map_ = Counter(nums)
+
+    pri_que = [] # 小顶堆
+    
+    # 用固定大小为k的小顶堆，扫描所有频率的数值
+    for key, freq in map_.items():
+        heapq.heappush(pri_que, (freq, key))
+        if len(pri_que) > k: #如果堆的大小大于了K，则队列弹出，保证堆的大小一直为k
+            heapq.heappop(pri_que)
+    
+    return [i[1] for i in pri_que[:k]]
 
 
 # 239. 滑动窗口最大值
