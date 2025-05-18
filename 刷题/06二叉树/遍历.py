@@ -83,9 +83,53 @@ def inorderTraversal(root):
             tmp_node = stack.pop()
             res.append(tmp_node.val)
             root = tmp_node.right
+    
+    # 3. 迭代（空节点法）
+    stack = [root] if root else []
+    while stack:
+        node = stack.pop()
+        if node:
+            if node.right:
+                stack.append(node.right)
+            
+            stack.append(node)
+            stack.append(None)
+
+            if node.left:
+                stack.append(node.left)
+        else:
+            node = stack.pop()
+            res.append(node.val)
 
     return res
 
+# 102. 二叉树的层序遍历(简单，不用复习)
+def levelOrder(root):
+    if not root:
+        return []
+    
+    from collections import deque
+    queue = deque([root])
+
+    res = []
+
+    while queue:
+        num = len(queue)
+        tmp_res = []
+
+        for i in range(num):
+            node = queue.popleft()
+            tmp_res.append(node.val)
+            
+            if node.left:
+                queue.append(node.left)
+            if node.right:
+                queue.append(node.right)
+
+        res.append(tmp_res)
+
+
+    return res 
 
 
 if __name__ == "__main__":
