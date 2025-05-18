@@ -1,7 +1,7 @@
 # 组合问题：N个数里面按一定规则找出k个数的集合
-# 排列问题：N个数按一定规则全排列，有几种排列方式
 # 切割问题：一个字符串按一定规则有几种切割方式
 # 子集问题：一个N个数的集合里有多少符合条件的子集
+# 排列问题：N个数按一定规则全排列，有几种排列方式
 # 棋盘问题：N皇后，解数独等等
 
 '''
@@ -85,7 +85,7 @@ class Solution:
     def __init__(self):
         self.res = []
 
-    def subsets(self, nums: List[int]) -> List[List[int]]:
+    def subsets(self, nums):
         
         self.backtracking(start_index=0, nums=nums, path=[])
         return self.res
@@ -98,3 +98,49 @@ class Solution:
             self.backtracking(index+1, nums, path)
             path.pop()
 
+# 491. 递增子序列
+class Solution:
+    def __init__(self):
+        self.res = []
+
+    def findSubsequences(self, nums): 
+
+        self.backtracking(startindex=0, nums=nums, path=[])
+        return self.res
+
+    def backtracking(self, startindex, nums, path):
+        if len(path) >= 2:
+            self.res.append(path[:])
+
+        # 用集合去重，记录已经使用过的元素（树层去重）
+        s = set()
+        for index in range(startindex, len(nums)):
+            if nums[index] not in s and (len(path) == 0 or nums[index] >= path[-1]):
+                path.append(nums[index])
+                s.add(nums[index])
+                self.backtracking(index+1, nums, path)
+                path.pop()
+
+# 46. 全排列
+class Solution:
+    def __init__(self):
+        self.res = []
+
+    def permute(self, nums):
+        
+        self.backtracking(nums, [], [False] * len(nums))
+        return self.res 
+
+    def backtracking(self, nums, path, used):
+        if len(path) == len(nums):
+            self.res.append(path[:])
+            return
+        
+        for i in range(len(nums)):
+            if used[i]:
+                continue
+            used[i] = True
+            path.append(nums[i])
+            self.backtracking(nums, path, used)
+            path.pop()
+            used[i] = False
