@@ -1,3 +1,10 @@
+from typing import Optional
+
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
 
 # 226. 翻转二叉树
 def invertTree(root):
@@ -60,14 +67,36 @@ def sortedArrayToBST(nums):
 
 # 538. 把二叉搜索树转换为累加树
 def convertBST(root):
-    if not root:
-        return
-
-    convertBST(root.right)
-
-    self.count += root.val
-    root.val = self.count
-
-    convertBST(root.left)
-    
+    count = 0
+    def dfs(node):
+        nonlocal count
+        if not node:
+            return
+        dfs(node.right)
+        count += node.val
+        node.val = count
+        dfs(node.left)
+    dfs(root)
     return root
+
+# 968. 二叉树的摄像头
+class Solution:
+    def __init__(self):
+        self.res = 0
+
+    def minCameraCover(self, root: Optional[TreeNode]) -> int:
+        # 0: 未覆盖，1: 有摄像头，2: 被覆盖
+        def dps(node):
+            if not node:
+                return 2
+            left = dps(node.left)
+            right = dps(node.right)
+            if left == 0 or right == 0:
+                self.res += 1
+                return 1
+            if left == 1 or right == 1:
+                return 2
+            return 0
+        if dps(root) == 0:
+            self.res += 1
+        return self.res
