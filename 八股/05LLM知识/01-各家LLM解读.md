@@ -2,7 +2,7 @@
 
 ## InstructGPT（2022.01.27）
 > https://arxiv.org/abs/2203.02155  
-> https://zhuanlan.zhihu.com/p/637419868 (通俗的PPO讲解)
+> https://zhuanlan.zhihu.com/p/637419868 
 
 InstructGPT的核心目的：**遵循人类的意图**，因为大语言模型无监督训练方法是 "从互联网上的大量语料库中学习根据上文来预测下一个词"，它做的是个生成任务。而不是 "根据人类的指令生成有帮助，无害的对应答案"。
 
