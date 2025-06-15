@@ -3,7 +3,8 @@
 - [ ] jina
 - [ ] openai
 - [ ] grok
-- [ ] tencent
+- [ ] Manus
+
 ## 前身
 ### STORM
 **research工作流**
@@ -44,15 +45,4 @@ pre-writing stage（搜索query相关的信息生成大纲） + writing stage（
 ### openai
 
 ### grok
-
-## 业务实现
-### 工作流
-
-### 评估
-
-### 训练
-
-### 遇到的问题
-
-### 探索
 
