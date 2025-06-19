@@ -25,7 +25,7 @@ InstructGPT的核心目的：**遵循人类的意图**，因为大语言模型�
 > https://arxiv.org/pdf/2302.13971  
 
 模型结构的改进：
-1. RMSNorm  
+### RMSNorm  
 
 原Norm公式：  
 $\bar{a}_{i}=\frac{a_{i}-\mu}{\sigma}g_{i}， \mu=\frac{1}{n} \sum_{i=1}^{n} a_{i}, \quad \sigma=\sqrt{\frac{1}{n} \sum_{i=1}^{n}\left(a_{i}-\mu\right)^{2}} .$  
@@ -33,7 +33,7 @@ $\bar{a}_{i}=\frac{a_{i}-\mu}{\sigma}g_{i}， \mu=\frac{1}{n} \sum_{i=1}^{n} a_{
 RMSNorm公式（**优点**：省去了减均值的操作，减少计算量）：  
 $\bar{a}_{i}=\frac{a_{i}}{\operatorname{RMS}(\mathbf{a})} g_{i}, \quad \text { where } \operatorname{RMS}(\mathbf{a})=\sqrt{\frac{1}{n} \sum_{i=1}^{n} a_~{i}^{2}}$
 
-2. SwiGLU激活函数  
+### SwiGLU激活函数  
 
 SwiGLU是门控线性单元（GLU）的一种，GLU其实不算是一种激活函数，而是一种**神经网络层**。它是一个线性变换后面接门控机制的结构。其中门控机制是一个sigmoid函数用来控制信息能够通过多少。  
 
@@ -44,13 +44,16 @@ $\operatorname{ReLU}(x, W, V, b, c)=\max(0, x W+b)\otimes(x V+c)$
 
 **优点**：SwiGLU相比于ReLU在Transformer架构下能降低约1-2%的困惑度，对ReLU更平滑
 
-3. RoPE(Rotary Position Embedding)旋转位置编码  
+### RoPE(Rotary Position Embedding)旋转位置编码  
 > https://zhuanlan.zhihu.com/p/647109286  （旋转位置编码公式的推导）
 
 RoPE不同于绝对位置编码的相加运算，RoPE是将位置编码和query（或key）进行相乘得到的。
 ![rope](rope.png)
 $Q_{i}=X_{i} W^{Q} R_{i}$   
 $e_{i, j}=\frac{Q_{i} K_{j}^{T}}{\sqrt{H}}$(原Attention公式)  -> $e_{i, j}=\frac{Q_{i} R_{i-j} K_{j}^{T}}{\sqrt{H}}$(旋转位置编码公式)  
+
+$R_{i-j} = R_i^{T}R_j$
+
 其中左侧的大矩阵$R_m$就是位置m的位置编码，与右侧query向量相乘得到增加了位置信息的query。因此，这种编码不是作用在embedding的输入层，而是作用在与Attention的计算中。
 
 **优点**：1. 有很好的外推性【可以通过旋转矩阵$R$来生成超过预期训练长度的位置编码，提高了模型的泛化能力和鲁棒性】 2. 解决了绝对位置编码（每个位置的位置编码向量都是不一样的）无法实现的：任何位置之间的相对距离在不同长度的句子中应该是一致的【有效地保持位置信息的相对关系】
@@ -262,15 +265,43 @@ MLA 它对 Q 和 K 进行拆分，一部分维度做压缩，一部分维度做 
 ![alt text](mla.png)
 
 #### 流程：  
-1. 先对 K，V 通过一个低秩矩阵 $W^{DKV}$ 进行联合压缩、压缩成向量 C，然后再用两个升维矩阵 $W^{UK}$ 和 $W^{UV}$ 进行升维。  **具体来说，对注意力机制中K V的线性变换进行维度缩小与放大**。此外，论文中也提到，为了降低训练过程中的激活内存，DeepSeek 还对 Q 进行了低秩压缩，对 Q 的压缩方式和 K、V 一致，依然是先降维再升维。对应图中公式（37）（38）
+1. 先对 K，V 通过一个低秩矩阵 $W^{DKV}$ 进行联合压缩、压缩成向量 C，然后再用两个升维矩阵 $W^{UK}$ 和 $W^{UV}$ 进行升维。  **具体来说，对注意力机制中K V的线性变换进行维度缩小与放大**（类似于LORA）。此外，DeepSeek 还对 Q 进行了低秩压缩，对 Q 的压缩方式和 K、V 一致，依然是先降维再升维（不过维度减小得并不多）。对应图中公式（37）（38）
 
-2. 位置编码增强：我们注意到在增加RoPE位置编码并没有在上述计算出的 $K^{C}_t$ 和 $q^{C}_t$ 的基础上乘以Rope的对角矩阵。而是单独计算了两个带着位置编码的 $q^{R}_t$ 和 $k^{R}_t$ 如公式（39）和公式（43）所示，将$K^{C}_t$ 和 $k^{R}_t$拼接之后，再进行公式（46）的注意力计算。  
-    
-    Q1：为什么要单独计算位置编码？
-    A1：
+2. 位置编码增强：我们注意到在增加RoPE位置编码并没有在上述计算出的 $K^{C}_t$ 和 $q^{C}_t$ 的基础上乘以Rope的对角矩阵。而是如公式（39）和公式（43）所示，单独计算了两个带着位置编码的 $q^{R}_t$ 和 $k^{R}_t$ ，然后将$K^{C}_t$ 和 $k^{R}_t$拼接之后，再进行公式（46）的注意力计算。
+
+    > 1. $q^{R}_t$ 和 $k^{R}_t$的维度都很小，是head_dim的一半  
+    > 2. $k^{R}_t$ 是MQA的方式，所有head共享一个$W^{KR}$
+
+#### 为什么要单独计算位置编码？【MLA压缩KV Cache的核心原理】  
+因为RoPE与低秩KV不兼容，没法做矩阵吸收计算。  
+a) 没有RoPE时  
+$q_{t}^T\times k_{j}=(W^{UQ}c_t^Q)^T\times W^{UK}c_j^{KV}=(c_t^Q)^T\times(W^{UQ})^TW^{UK}\times c_j^{KV}$  
+
+这样的好处是，我们只需要缓存$c_j^{KV}$，因为$(W^{UQ})^TW^{UK}$是固定的，而C的维度很小，因此极大减小缓存。
+
+b) 有RoPE时  
+$q_{t}^T\times k_{j}=(R_tW^{UQ}c_t^Q)^T\times R_jW^{UK}c_j^{KV}=(c_t^Q)^T\times(W^{UQ})^TR_t^{T}R_jW^{UK}\times c_j^{KV} = (c_t^Q)^T\times(W^{UQ})^TR_{t-j}W^{UK}\times c_j^{KV}$ 
+
+中间这个分量 $(W^{UQ})^TR_{t-j}W^{UK}$ 是随这相对位置变化而变化的，并不是个固定的矩阵，因此并不能提前计算好。所以论文中说RoPE与低秩变换不兼容。
 
 #### 为什么大幅节约了KV Cache
-因为MLA，缓存了$C$，而不是缓存KV，C通过低秩矩阵计算之后，维度小了很多
+因为MLA，只缓存了$C^{KV}_t$和$k^{R}_t$，而不是缓存KV，$C^{KV}_t$通过低秩矩阵计算之后，维度小了很多（论文中是4 x $d_{head}$）
+
+![alt text](mla_image.png)
+
+### MTP（Multi-Token Prediction）
+核心思想：通过解码阶段的优化，将1-token的生成，转变成**multi-token的生成**，从而提升训练和推理的性能。具体来说，在训练阶段，一次生成多个后续token，可以一次学习多个位置的label，进而有效提升样本的利用效率，提升训练速度；在推理阶段通过一次生成多个token，实现成倍的推理加速来提升推理性能。
+
+![alt text](MTP.png)
+
+注意，MTP Module 1 2 的参数只有一个，即是共享的
+
+##### 推理
+虽然DeepSeek做了MTP训练，但他的主要目的是加速模型收敛，因为Loss更多了。在推理时，依然是1-token的。
+
+### MoE
+
+
 
 ## o3（2025.01.31）
 
