@@ -66,7 +66,7 @@ OpenAI没有给出技术细节报告
 ## LLama2（2023.07.18）
 > https://arxiv.org/pdf/2307.09288
 
-模型结构的改进：
+### 模型结构的改进：
 1. GQA（分组查询注意力）
 ![](gqa.jpg)
 标注的MHA见图中最左边的示例，每个query head都有对应的key head和value head；而GQA将query head分成了多个组，每个组共享一个key head和value head。
@@ -298,8 +298,11 @@ $q_{t}^T\times k_{j}=(R_tW^{UQ}c_t^Q)^T\times R_jW^{UK}c_j^{KV}=(c_t^Q)^T\times(
 虽然DeepSeek做了MTP训练，但他的主要目的是加速模型收敛，因为Loss更多了。在推理时，依然是1-token的。
 
 ### MoE
+MoE替换的是模型中的MLP层
 
+$y=f(\boldsymbol{x}\left[\boldsymbol{W}_1^{(A)}\quad\boldsymbol{W}_2^{(A)}\quad\cdots\quad\boldsymbol{W}_n^{(A)}\right]) \begin{bmatrix} \boldsymbol{W}_1^{(B)} \\ \boldsymbol{W}_2^{(B)} \\ \vdots \\ \boldsymbol{W}_n^{(B)} \end{bmatrix}=\sum_{i=1}^n\underbrace{f(\boldsymbol{x}\boldsymbol{W}_i^{(A)})\boldsymbol{W}_i^{(B)}}_{\boldsymbol{v}_i}$
 
+MoE提出的问题是：能否只挑k个向量的和来逼近n个向量的和呢？这样就可以将计算量降低到k/n。
 
 ## o3（2025.01.31）
 
