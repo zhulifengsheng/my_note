@@ -294,8 +294,6 @@ $q_{t}^T\times k_{j}=(R_tW^{UQ}c_t^Q)^T\times R_jW^{UK}c_j^{KV}=(c_t^Q)^T\times(
 
 ![alt text](MTP.png)
 
-注意，MTP Module 1 2 的参数只有一个，即是共享的
-
 ##### 推理
 虽然DeepSeek做了MTP训练，但他的主要目的是加速模型收敛，因为Loss更多了。在推理时，依然是1-token的。
 
