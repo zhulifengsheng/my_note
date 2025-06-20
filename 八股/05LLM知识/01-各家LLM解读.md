@@ -362,9 +362,42 @@ $q_{t}^T\times k_{j}=(R_tW^{UQ}c_t^Q)^T\times R_jW^{UK}c_j^{KV}=(c_t^Q)^T\times(
 虽然DeepSeek做了MTP训练，但他的主要目的是加速模型收敛，因为Loss更多了。在推理时，依然是1-token的。
 
 ### MoE
-MoE替换的是模型中的MLP层
 
+![alt text](deepseek-moe.png)
 
+#### 共享专家
+将某些专家隔离出来，作为始终激活的共享专家，旨在捕获不同上下文中的共同知识。通过将共同知识压缩到这些共享专家中，可以减轻其他路由专家之间的冗余，这可以提高参数效率，确保每个路由专家专注于不同方面而保持专业化。
+
+#### 细粒度专家
+在保持参数数量不变的情况下，作者通过分割FFN中间隐藏维度来将专家分割成更细的粒度，生成更多的专家。  
+expert就是FFN，FFN就是两个Linear + Silu + Linear  
+通过分割FFN中间隐藏维度，参数没有增加，从FFN中输出的tensor维度也没有变化。
+
+#### MoE门控计算从 Softmax->Sigmoid
+
+$${ \mathbf { h } } _ { t } ^ { \prime } = { \mathbf { u } } _ { t } + \sum _ { i = 1 } ^ { N _ { s } } \mathrm { F F N } _ { i } ^ { ( s ) } \left( { \mathbf { u } } _ { t } \right) + \sum _ { i = 1 } ^ { N _ { r } } g _ { i , t } \mathrm { F F N } _ { i } ^ { ( r ) } \left( { \mathbf { u } } _ { t } \right) ,$$
+$$
+g _ { i , t } = \frac { g _ { i , t } ^ { \prime } } { \sum _ { j = 1 } ^ { N _ { r } } g _ { j , t } ^ { \prime } } ,$$
+$$g _ { i , t } ^ { \prime } = \left\{ \begin{array} { l l } { s _ { i , t } , } & { s _ { i , t } \in \operatorname { T o p k } ( \{ s _ { j , t } | 1 \leqslant j \leqslant N _ { r } \} , K _ { r } ) , } \\ { 0 , } & { \text { otherwise } , } \end{array} \right.$$
+$$
+s _ { i , t } = \operatorname { S i g m o i d } \left( { \mathbf { u } } _ { t } ^ { T } { \mathbf { e } } _ { i } \right) ,$$
+
+从实现门控的效果上看，Softmax和Sigmoid都能做实现筛选TopK的功能，也能做概率分布的归一化处理。
+
+但V3版的MoE为什么要做从Softmax -> Sigmoid的升级？
+
+要解释这个问题，我们看看V3版相对于V2版的专家设置发生了哪些变化。
+
+V2版：路由专家数： 160， 激活专家数： 6个， 模型总参数67B，激活参数21B  
+V3版：路由专家数： 256， 激活专家数： 8个， 模型总参数671B，激活参数37B  
+
+这里我个人理解：V3相对于V2的路由专家数增加了近100个，我们考虑在计算一个较大维度的softmax操作，softmax要在内部对所有维度的值做归一化处理，维度越大，会趋向于计算出的每个维度的值会越小，因为所有维度加和要等于1，所以维度越大，每个维度值理论上分配的值就越小。这样在选取 K 个最大值时，会有数据区分度不高的问题，维度越大，问题越严重。而选择Sigmoid函数，它是对每个专家分别计算一个 (0, 1) 的打分，它并是不随专家维度变化而变化，理论上计算的打分值域更宽，区分度更高。所以V3版在配置更多路由专家的情况下，采用了值域更宽的Sigmoid的函数计算专家激活权重。
+
+#### sequence粒度的负均衡损失
+平衡单个sequence的token分配给每个专家
+
+### R1的训练过程
+见02-推理模型
 
 ## o3（2025.01.31）
 
