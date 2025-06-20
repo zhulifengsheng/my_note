@@ -13,22 +13,6 @@ for (int j = weight[0]; j <= bagWeight; j++)
     dp[0][j] = dp[0][j - weight[0]] + value[0]; # 可以一直装物品0
 '''
 
-# 343. 整数拆分
-def integerBreak(n: int) -> int:
-    # 1. dp为n的乘积最大值
-    dp = [1] * (n+1)
-    
-    dp[2] = 1
-
-    for i in range(3, n+1):
-        for j in range(1, i):
-            # 2. 确定递推公式：一个是j * (i - j) 直接相乘。一个是j * dp[i - j]（拆分i-j）
-            dp[i] = max(dp[i], j*dp[i - j], j*(i-j))
-        
-        # print(dp)
-
-    return dp[-1]
-
 # 494. 目标和
 def findTargetSumWays(nums, target: int) -> int:
     total = sum(nums)
@@ -40,6 +24,7 @@ def findTargetSumWays(nums, target: int) -> int:
     # 变成几个数可以组成求和new_target
     new_target = (target + total) // 2
 
+    # 目标和为0时，只有一种方式，即不选任何数
     dp = [[1] + [0] * new_target for _ in nums]
     dp[0][nums[0]] += 1
 
@@ -54,6 +39,7 @@ def findTargetSumWays(nums, target: int) -> int:
 
 # 474. 一和零（滚动数组，从后向前遍历）
 def findMaxForm(strs, m: int, n: int) -> int:
+    # 3维数组变2维
     dp = [[0] * (n + 1) for _ in range(m + 1)]  # 创建二维动态规划数组，初始化为0
 
     # 遍历物品
@@ -66,3 +52,14 @@ def findMaxForm(strs, m: int, n: int) -> int:
                 dp[i][j] = max(dp[i][j], dp[i - zeros][j - ones] + 1)  # 状态转移方程
     
     return dp[m][n]
+
+# 377. 组合总和 IV
+## 本题学习的是 “组合”和“排列”的区别
+## 组合不强调顺序，(1,5)和(5,1)是同一个组合。
+## 排列强调顺序，(1,5)和(5,1)是两个不同的排列。
+
+## 如果求组合数就是外层for循环遍历物品，内层for遍历背包。
+## 如果求排列数就是外层for遍历背包，内层for循环遍历物品。
+def combinationSum4(nums, target: int) -> int:
+    pass
+    

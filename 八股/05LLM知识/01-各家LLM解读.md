@@ -1,4 +1,7 @@
 # 大模型发展史
+> 翻译了各家大模型的技术文章  
+> https://zhuanlan.zhihu.com/p/670574382?utm_psn=1884598268316586416  
+
 
 ## InstructGPT（2022.01.27）
 > https://arxiv.org/abs/2203.02155  
@@ -42,7 +45,7 @@ $\operatorname{SwiGLU}(x, W, V, b, c)=\operatorname{Swish}_{1}(x W+b) \otimes(x 
 $\operatorname{Swish}_{1}(x)=x \sigma(1 x)$  
 $\operatorname{ReLU}(x, W, V, b, c)=\max(0, x W+b)\otimes(x V+c)$  
 
-**优点**：SwiGLU相比于ReLU在Transformer架构下能降低约1-2%的困惑度，对ReLU更平滑
+**优点**：ReLU的硬截断特性可能导致梯度消失，而SwiGLU的Swish门控平滑且保留负区间的部分信息，增强了梯度的稳定性；同时，门控机制通过参数化选择重要特征，提升了模型表达能力。SwiGLU相比于ReLU在Transformer架构下能降低约1-2%的困惑度，比ReLU更平滑
 
 ### RoPE(Rotary Position Embedding)旋转位置编码  
 > https://zhuanlan.zhihu.com/p/647109286  （旋转位置编码公式的推导）
@@ -66,7 +69,7 @@ OpenAI没有给出技术细节报告
 ## LLama2（2023.07.18）
 > https://arxiv.org/pdf/2307.09288
 
-模型结构的改进：
+### 模型结构的改进：
 1. GQA（分组查询注意力）
 ![](gqa.jpg)
 标注的MHA见图中最左边的示例，每个query head都有对应的key head和value head；而GQA将query head分成了多个组，每个组共享一个key head和value head。
@@ -229,7 +232,68 @@ a. 窗口注意力：将注意力限制在一个上下文窗口内，防止模�
 b. 分层注意力：低层注意力窗口更小，高层注意力窗口更大（研究团队观察到Qwen模型在处理长上下文时在不同层次上的建模能力存在差异，较低的层次相对于较高的层次更加敏感于上下文长度的扩展）
 
 ## Mixtral（2023.12.11）
+> https://zhuanlan.zhihu.com/p/684922663  
 
+### MoE的思想
+MoE替换的是模型中的MLP层
+
+$y=f(\boldsymbol{x}\left[\boldsymbol{W}_1^{(A)}\quad\boldsymbol{W}_2^{(A)}\quad\cdots\quad\boldsymbol{W}_n^{(A)}\right]) \begin{bmatrix} \boldsymbol{W}_1^{(B)} \\ \boldsymbol{W}_2^{(B)} \\ \vdots \\ \boldsymbol{W}_n^{(B)} \end{bmatrix}=\sum_{i=1}^n\underbrace{f(\boldsymbol{x}\boldsymbol{W}_i^{(A)})\boldsymbol{W}_i^{(B)}}_{\boldsymbol{v}_i}$
+
+MoE提出的问题是：能否只挑k个向量的和来逼近n个向量的和呢？这样就可以将计算量降低到k/n。在实现过程中，表现为8个专家（7B），挑出2个适合当前token的，执行计算。
+
+### Mixtral的实现
+对于每个token，路由网络在每层选择两个专家来处理当前状态并合并它们的输出。
+
+![alt text](mixtral-moe.png)
+
+```python
+class MoeLayer(nn.Module):
+    def __init__(self, experts: List[nn.Module], gate: nn.Module, moe_args: MoeArgs):
+        super().__init__()
+        assert len(experts) > 0
+        # 定义experts，就是一组(8个)Llama FFN，
+        # Llama FFN就是两个Linear + Silu + Linear
+        self.experts = nn.ModuleList(experts)
+        # gate也是一个Linear，这个Linear weight的维度是[hidden_dim , num_experts]
+        self.gate = gate  
+        self.args = moe_args
+
+    def forward(self, inputs: torch.Tensor):
+        # 更改input shape [bst,seq_len,hidden-dim] -> [bst*seq_len,hidden-dim]
+        inputs_squashed = inputs.view(-1, inputs.shape[-1])
+        # Gate Linear 将输入线性映射到num_experts
+        # 即[bst*seq_len,hidden-dim] -> [bst*seq_len,num_experts]
+        gate_logits = self.gate(inputs_squashed)
+        # topk排序
+        # weights返回topk的值
+        # selected_experts 返回topk的index
+        # torch.topk 用于返回输入张量中每个元素沿指定维度的最大k个元素及其索引
+        weights, selected_experts = torch.topk(
+            gate_logits, self.args.num_experts_per_tok
+        )
+        # 对每个weight做softmax，归一化
+        weights = nn.functional.softmax(
+            weights,
+            dim=1,
+            dtype=torch.float,
+        ).type_as(inputs)
+        results = torch.zeros_like(inputs_squashed)
+        for i, expert in enumerate(self.experts):
+            # 根据selected_experts确定weight的行id和列id
+            batch_idx, nth_expert = torch.where(selected_experts == i)
+            # 通过上述id选择对应的加权数据 以及执行对应的expert，并将结果加权求和
+            results[batch_idx] += weights[batch_idx, nth_expert, None] * expert(
+                inputs_squashed[batch_idx]
+            )
+        return results.view_as(inputs)
+```
+
+### 负载均衡-辅助损失
+引入负载均衡损失，目的是解决多专家token分布不均的问题。因为如果完全按门控权重选取topk专家，容易导致训练过程出现负载不均衡的问题。比如：大多数token被分配到少数几个专家。
+
+我们可以用每个专家收到的token比例的平方和（方差）来描述负载均衡损失，公式如下，其中S是token数量，E是专家个数，$c_e$是第e个专家收到的token数量。
+
+$l_{aux}=\frac{1}{E}\sum_{e=1}^E(\frac{c_e}{S})^2$
 
 ## Qwen1.5（2024.02.05）
 
@@ -299,13 +363,44 @@ $q_{t}^T\times k_{j}=(R_tW^{UQ}c_t^Q)^T\times R_jW^{UK}c_j^{KV}=(c_t^Q)^T\times(
 
 ### MoE
 
+![alt text](deepseek-moe.png)
 
+#### 共享专家
+将某些专家隔离出来，作为始终激活的共享专家，旨在捕获不同上下文中的共同知识。通过将共同知识压缩到这些共享专家中，可以减轻其他路由专家之间的冗余，这可以提高参数效率，确保每个路由专家专注于不同方面而保持专业化。
+
+#### 细粒度专家
+在保持参数数量不变的情况下，作者通过分割FFN中间隐藏维度来将专家分割成更细的粒度，生成更多的专家。  
+expert就是FFN，FFN就是两个Linear + Silu + Linear  
+通过分割FFN中间隐藏维度，参数没有增加，从FFN中输出的tensor维度也没有变化。
+
+#### MoE门控计算从 Softmax->Sigmoid
+
+$${ \mathbf { h } } _ { t } ^ { \prime } = { \mathbf { u } } _ { t } + \sum _ { i = 1 } ^ { N _ { s } } \mathrm { F F N } _ { i } ^ { ( s ) } \left( { \mathbf { u } } _ { t } \right) + \sum _ { i = 1 } ^ { N _ { r } } g _ { i , t } \mathrm { F F N } _ { i } ^ { ( r ) } \left( { \mathbf { u } } _ { t } \right) ,$$
+$$
+g _ { i , t } = \frac { g _ { i , t } ^ { \prime } } { \sum _ { j = 1 } ^ { N _ { r } } g _ { j , t } ^ { \prime } } ,$$
+$$g _ { i , t } ^ { \prime } = \left\{ \begin{array} { l l } { s _ { i , t } , } & { s _ { i , t } \in \operatorname { T o p k } ( \{ s _ { j , t } | 1 \leqslant j \leqslant N _ { r } \} , K _ { r } ) , } \\ { 0 , } & { \text { otherwise } , } \end{array} \right.$$
+$$
+s _ { i , t } = \operatorname { S i g m o i d } \left( { \mathbf { u } } _ { t } ^ { T } { \mathbf { e } } _ { i } \right) ,$$
+
+从实现门控的效果上看，Softmax和Sigmoid都能做实现筛选TopK的功能，也能做概率分布的归一化处理。
+
+但V3版的MoE为什么要做从Softmax -> Sigmoid的升级？
+
+要解释这个问题，我们看看V3版相对于V2版的专家设置发生了哪些变化。
+
+V2版：路由专家数： 160， 激活专家数： 6个， 模型总参数67B，激活参数21B  
+V3版：路由专家数： 256， 激活专家数： 8个， 模型总参数671B，激活参数37B  
+
+这里我个人理解：V3相对于V2的路由专家数增加了近100个，我们考虑在计算一个较大维度的softmax操作，softmax要在内部对所有维度的值做归一化处理，维度越大，会趋向于计算出的每个维度的值会越小，因为所有维度加和要等于1，所以维度越大，每个维度值理论上分配的值就越小。这样在选取 K 个最大值时，会有数据区分度不高的问题，维度越大，问题越严重。而选择Sigmoid函数，它是对每个专家分别计算一个 (0, 1) 的打分，它并是不随专家维度变化而变化，理论上计算的打分值域更宽，区分度更高。所以V3版在配置更多路由专家的情况下，采用了值域更宽的Sigmoid的函数计算专家激活权重。
+
+#### sequence粒度的负均衡损失
+平衡单个sequence的token分配给每个专家
+
+### R1的训练过程
+见02-推理模型
 
 ## o3（2025.01.31）
 
 ## QwQ（2025.03.06）
 
-# 翻译了各家大模型的技术文章
-https://zhuanlan.zhihu.com/p/670574382?utm_psn=1884598268316586416
-
-# Qwen3
+# Qwen3（2025.04.29）
