@@ -95,6 +95,19 @@ def f4(nums, target):
     
     return [leftborder, rightborder]
 
+# 153. 寻找旋转排序数组中的最小值
+def f5(nums):
+    # https://leetcode.cn/problems/find-minimum-in-rotated-sorted-array/solutions/698479/xun-zhao-xuan-zhuan-pai-xu-shu-zu-zhong-5irwp/
+    low, high = 0, len(nums) - 1
+    while low < high:
+        pivot = low + (high - low) // 2
+        if nums[pivot] < nums[high]:
+            high = pivot 
+        else:
+            low = pivot + 1
+    return nums[low]
+
+
 
 if __name__ == "__main__":
     nums = [1, 2, 3, 4, 7, 9]
