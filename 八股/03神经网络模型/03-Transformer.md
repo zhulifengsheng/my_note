@@ -2,6 +2,55 @@
 
 # Transformer
 
+![alt text](transformer.png)
+
+## 一层decoder的数学计算
+
+```python
+# x是输入 y是输出
+def MHA(x):
+   q = W1x + b1
+   k = W2x + b2
+   v = W3x + b3
+
+   # 多头拆分
+   [q1, ..., qn] = q
+   [k1, ..., kn] = k
+   [v1, ..., vn] = v
+
+   # 注意力分数计算
+   atten_score_i = Softmax((qi^T * ki + mask) / sqrt(head_dim))
+
+   oi = atten_score_i * vi
+
+   res = [o1, ..., on]
+
+   return res
+
+def FFN(x):
+   y1 = W1x + b1
+   y2 = ReLU(x)   # max(0, x)
+   y3 = W2y2 + b2
+
+   return y3
+
+def layerNorm(x):
+   # 对batch中每个seq_len（即每个token）自己进行norm
+   mean = mean(x)
+   std = std(x)   # 标注差，方差开根号
+
+   y = (x - mean) / std
+   return y
+
+mha_output = MHA(x)
+x1 = LayerNorm(x + mha_output)
+ffn_output = FFN(x)
+y = LayerNorm(x + ffn_output)
+
+
+```
+
+
 ## QA
 
 ### 1. Transformer点积放缩的原因？
