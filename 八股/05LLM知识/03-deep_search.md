@@ -1,9 +1,7 @@
 # deep search
 - [X] storm paper
-- [ ] jina
-- [ ] openai
-- [ ] grok
-- [ ] Manus
+- [X] jina
+- [ ] Webthinker
 
 ## 前身
 ### STORM
@@ -51,6 +49,8 @@ pre-writing stage（搜索query相关的信息生成大纲） + writing stage（
 #### 串行搜索
 当search时，利用FIFO（先进先出）机制，新的query先搜索，然后将search res应用到后面的query中。我的理解是：生成了3个query，一个一个search，后面的query可以根据search res进行更改。
 
+*但我们的研报写作方案是并行搜索*
+
 #### 查询改写
 query改写非常重要，一个好的query能找到好的素材，进而完成好的报告。【我在研报写作中也觉得query十分重要，目前是利用人工标准数据，指导模型生成好的、适配于搜索接口的query】
 
@@ -64,8 +64,32 @@ jina最初使用LLM进行去重，但是发现很难控制去重程度；最终�
 embedding的使用：利用embedding检索出最相关的切分后的网页文本。  
 知识连贯：我们不能接受像 [1-2, 6-7, 9, 14, 17, ...] 这样组合散落句子的片段。更有用的知识片段应该遵循像 [3-15, 17-24, ...] 这样的模式 —— 始终保持文本连续。
 
+![alt text](jina-embedding.png)
+
 #### 知识管理
 以上下文的形式保存起来，输入到prompt中。因为LLM 都有很大的上下文窗口，我们选择不使用向量数据库。
+
+独立设置Memory进行知识存储，并利用R1输出Memory操作来进行知识更新  
+
+JINA设置了Add Delete 但是没有Replace，因为他们发现模型过度依赖Replace
+
+```python
+# Status: IN_PROGRESS
+# Memory: 
+# <nuz-032>Potential warm May destinations: Malaga (Spain), Crete (Greece), Algarve (Portugal)</nuz-032>
+# <xwj-969>URL to scrape for Crete hotel details: <https://www.tripadvisor.com/HotelsList-Crete-Beachfront-Cheap-Hotels-zfp13280541.html></xwj-969>
+# <vsc-583>URL to scrape for flight details: <https://www.expedia.com/lp/flights/fra/her/frankfurt-to-heraklion></vsc-583>
+
+'''R1生成的结果，对记忆进行更新'''
+r1_output = {
+	"memory_updates": [
+	  {"operation": "add", "content": "Round-trip flight from Berlin to Tenerife in May 2025 ranges from €59.99 to €200 round-trip as per the Skyscanner and Iberia sources."},
+	  {"operation": "delete", "id": "nuz-032"},
+	  ...
+	]
+}
+
+```
 
 #### 评价
 JINA使用的是多维度打分（few shot），但是我们实验下来这种方法很差，还是对比评价效果更好，V2 和 V1比，同时还可以加入真实研报作为标准。
@@ -76,6 +100,4 @@ JINA使用的是多维度打分（few shot），但是我们实验下来这种�
 
 ### Webthinker
 
-
-### 
 
