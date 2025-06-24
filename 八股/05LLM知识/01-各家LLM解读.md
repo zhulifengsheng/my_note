@@ -438,10 +438,10 @@ V3版：路由专家数： 256， 激活专家数： 8个， 模型总参数671B
 > https://www.alphaxiv.org/zh/overview/2505.09388v1
 
 ### QKV-bias
-
+TODO
 
 ### KV-Norm
-
+TODO
 
 ### 去除了2.5中的共享专家（MoE）
 
@@ -457,3 +457,4 @@ V3版：路由专家数： 256， 激活专家数： 8个， 模型总参数671B
 ### 后训练
 
 ![alt text](qwen3.png)
+TODO
