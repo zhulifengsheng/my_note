@@ -328,6 +328,11 @@ DCA 通过将输入序列分块来减少计算复杂度，同时保留全局信�
 
 YaRN是基于NTK-aware方法的进一步拓展，通过结合温度缩放和NTK-by-parts插值技术，全面提升长文本外推能力。它核心解决的问题是线性内插导致的self-attention 点积的值增大。由于线性内插会改变旋转向量转动的幅度，原来距离较远的q,k点积由于旋转幅度变小，他们的点积结果会增大，进而导致Softmax操作过于“锐化”，使得注意力分布集中于少数位置，削弱模型对全局上下文的关注能力。 Yarn在 NTK-by-parts 基础上，引入注意力温度因子t来调整注意力分布。
 
+### QKV-bias
+> https://spaces.ac.cn/archives/9577  
+
+Bias项可以增强Transformer的长度外推性
+
 ## o1（2024.09.12）
 > https://arxiv.org/abs/2412.16720  
 
@@ -437,11 +442,15 @@ V3版：路由专家数： 256， 激活专家数： 8个， 模型总参数671B
 > https://zhuanlan.zhihu.com/p/1905926139756680880
 > https://www.alphaxiv.org/zh/overview/2505.09388v1
 
-### QKV-bias
-TODO
+### 移除QKV-bias
 
-### KV-Norm
-TODO
+### 添加QK-Norm
+> https://www.alphaxiv.org/zh/overview/2010.04245v1
+
+核心思想是对查询Q和键K矩阵应用 L2 归一化，有效地将点积操作转换为余弦相似度度量，其范围限制在 -1 到 1 之间。
+
+让模型的注意力更加分散，不会出现某个极大值，使softmax之后模型强关注于某几个token
+
 
 ### 去除了2.5中的共享专家（MoE）
 
