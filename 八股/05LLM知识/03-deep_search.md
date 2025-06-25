@@ -100,6 +100,12 @@ JINA使用的是多维度打分（few shot），但是我们实验下来这种�
 
 ### Webthinker
 
+#### Deep Web Explorer
+
+#### Autonomous Think-Search-and-Draft
+
+#### RL-based training strategies
+
 
 ### kimi-researcher
 > https://moonshotai.github.io/Kimi-Researcher/
