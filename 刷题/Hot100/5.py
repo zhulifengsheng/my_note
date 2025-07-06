@@ -28,7 +28,8 @@ def longestPalindrome(s: str) -> str:
                 else:
                     dp[l][r] = dp[l+1][r-1]
             
-            if dp[l][r] and len(s[l:r+1]) > len(res_str):
+            # 只有dp[l][r]确认是回文子串才保留
+            if dp[l][r] == 1 and len(s[l:r+1]) > len(res_str):
                 res_str = s[l:r+1]
 
     return res_str
