@@ -106,9 +106,12 @@ JINA使用的是多维度打分（few shot），但是我们实验下来这种�
 #### Deep Web Explorer
 
 #### Autonomous Think-Search-and-Draft
+（1）写草稿
+（2）check 当前的文章
+（3）编辑文章
 
 #### RL-based training strategies
-
+基于推理的准确率、工具的使用情况、最后的输出，使用DPO在线学习
 
 ### kimi-researcher
 > https://moonshotai.github.io/Kimi-Researcher/
