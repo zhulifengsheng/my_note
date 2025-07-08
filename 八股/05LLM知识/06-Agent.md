@@ -1,12 +1,10 @@
-# ReACT
+# 传统Agent
+## ReACT
 和deepseek一样，让模型输出思考之后再行动，不过当时还没有推理模型。
 
 prompt
 thought（ReACT）
 action
-
-# Function call
-SFT + 强化学习奖励，这部分我没有做
 
 # MCP
 Model Context Protocol，模型上下文协议
@@ -38,3 +36,9 @@ system_message = (
          "Please use only the tools that are explicitly defined above."
      )
 ```
+
+
+# Agent智能体
+> https://zhuanlan.zhihu.com/p/1892489650469323191
+
+25.7 目前的智能体方案，以强化学习、工具构建、memory管理、训练数据合成、评价系统等维度进行设计与分析
