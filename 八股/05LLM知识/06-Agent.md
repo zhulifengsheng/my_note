@@ -42,3 +42,24 @@ system_message = (
 > https://zhuanlan.zhihu.com/p/1892489650469323191
 
 25.7 目前的智能体方案，以强化学习、工具构建、memory管理、训练数据合成、评价系统等维度进行设计与分析
+
+## 训练方法与数据集
+RL 数据简单
+
+非RL 类似webthinker 通过最终结果判断，取最佳和最差做微调训练
+
+## 工具集合
+search
+write
+check【对写完的文章进行检查】
+read
+deep think
+attack【对目前的结论进行攻击，引导模型差缺补漏】
+
+## memory管理
+long long COT  
+knowledge  
+
+## 评价
+ground truth【标准答案】 + open【开放评价】
+
